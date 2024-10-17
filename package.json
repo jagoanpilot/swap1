@@ -5,7 +5,7 @@
   "private": true,
   "devDependencies": {
     "@ethersproject/experimental": "^5.0.1",
-    "@pancakeswap-libs/sdk": "exyted1/dny-sdk",
+    "@pancakeswap-libs/sdk": "jagoanpilot/dny-sdk",
     "@popperjs/core": "^2.4.4",
     "@reach/dialog": "^0.10.3",
     "@reach/portal": "^0.10.3",
