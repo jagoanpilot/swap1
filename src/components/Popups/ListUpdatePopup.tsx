@@ -1,14 +1,11 @@
-import { diffTokenLists, TokenList } from '@uniswap/token-lists'
 import React, { useCallback, useMemo } from 'react'
-import ReactGA from 'react-ga'
+import { diffTokenLists, TokenList } from '@uniswap/token-lists'
+import { Button, Text } from '@pancakeswap-libs/uikit'
 import { useDispatch } from 'react-redux'
-import { Text } from 'rebass'
 import { AppDispatch } from '../../state'
 import { useRemovePopup } from '../../state/application/hooks'
 import { acceptListUpdate } from '../../state/lists/actions'
-import { TYPE } from '../Shared'
 import listVersionLabel from '../../utils/listVersionLabel'
-import { ButtonSecondary } from '../Button'
 import { AutoColumn } from '../Column'
 import { AutoRow } from '../Row'
 
@@ -17,7 +14,7 @@ export default function ListUpdatePopup({
   listUrl,
   oldList,
   newList,
-  auto
+  auto,
 }: {
   popKey: string
   listUrl: string
@@ -31,11 +28,6 @@ export default function ListUpdatePopup({
 
   const handleAcceptUpdate = useCallback(() => {
     if (auto) return
-    ReactGA.event({
-      category: 'Lists',
-      action: 'Update List from Popup',
-      label: listUrl
-    })
     dispatch(acceptListUpdate(listUrl))
     removeThisPopup()
   }, [auto, dispatch, listUrl, removeThisPopup])
@@ -53,14 +45,14 @@ export default function ListUpdatePopup({
     <AutoRow>
       <AutoColumn style={{ flex: '1' }} gap="8px">
         {auto ? (
-          <TYPE.body fontWeight={500}>
+          <Text>
             The token list &quot;{oldList.name}&quot; has been updated to{' '}
             <strong>{listVersionLabel(newList.version)}</strong>.
-          </TYPE.body>
+          </Text>
         ) : (
           <>
             <div>
-              <Text>
+              <Text fontSize="14px">
                 An update is available for the token list &quot;{oldList.name}&quot; (
                 {listVersionLabel(oldList.version)} to {listVersionLabel(newList.version)}).
               </Text>
@@ -92,10 +84,10 @@ export default function ListUpdatePopup({
             </div>
             <AutoRow>
               <div style={{ flexGrow: 1, marginRight: 12 }}>
-                <ButtonSecondary onClick={handleAcceptUpdate}>Accept update</ButtonSecondary>
+                <Button onClick={handleAcceptUpdate}>Accept update</Button>
               </div>
               <div style={{ flexGrow: 1 }}>
-                <ButtonSecondary onClick={removeThisPopup}>Dismiss</ButtonSecondary>
+                <Button onClick={removeThisPopup}>Dismiss</Button>
               </div>
             </AutoRow>
           </>

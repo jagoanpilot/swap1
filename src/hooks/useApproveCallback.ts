@@ -4,20 +4,18 @@ import { Trade, TokenAmount, CurrencyAmount, ETHER } from '@pancakeswap-libs/sdk
 import { useCallback, useMemo } from 'react'
 import { ROUTER_ADDRESS } from '../constants'
 import { useTokenAllowance } from '../data/Allowances'
-import { getTradeVersion, useV1TradeExchangeAddress } from '../data/V1'
 import { Field } from '../state/swap/actions'
 import { useTransactionAdder, useHasPendingApproval } from '../state/transactions/hooks'
 import { computeSlippageAdjustedAmounts } from '../utils/prices'
 import { calculateGasMargin } from '../utils'
 import { useTokenContract } from './useContract'
 import { useActiveWeb3React } from './index'
-import { Version } from './useToggledVersion'
 
 export enum ApprovalState {
   UNKNOWN,
   NOT_APPROVED,
   PENDING,
-  APPROVED
+  APPROVED,
 }
 
 // returns a variable indicating the state of the approval and a function which approves if necessary or early returns
@@ -80,18 +78,19 @@ export function useApproveCallback(
       return tokenContract.estimateGas.approve(spender, amountToApprove.raw.toString())
     })
 
+    // eslint-disable-next-line consistent-return
     return tokenContract
       .approve(spender, useExact ? amountToApprove.raw.toString() : MaxUint256, {
-        gasLimit: calculateGasMargin(estimatedGas)
+        gasLimit: calculateGasMargin(estimatedGas),
       })
       .then((response: TransactionResponse) => {
         addTransaction(response, {
-          summary: 'Approve ' + amountToApprove.currency.symbol,
-          approval: { tokenAddress: token.address, spender: spender }
+          summary: `Approve ${amountToApprove.currency.symbol}`,
+          approval: { tokenAddress: token.address, spender },
         })
       })
       .catch((error: Error) => {
-        console.debug('Failed to approve token', error)
+        console.error('Failed to approve token', error)
         throw error
       })
   }, [approvalState, token, tokenContract, amountToApprove, spender, addTransaction])
@@ -105,7 +104,5 @@ export function useApproveCallbackFromTrade(trade?: Trade, allowedSlippage = 0) 
     () => (trade ? computeSlippageAdjustedAmounts(trade, allowedSlippage)[Field.INPUT] : undefined),
     [trade, allowedSlippage]
   )
-  const tradeIsV1 = getTradeVersion(trade) === Version.v1
-  const v1ExchangeAddress = useV1TradeExchangeAddress(trade)
-  return useApproveCallback(amountToApprove, tradeIsV1 ? v1ExchangeAddress : ROUTER_ADDRESS)
+  return useApproveCallback(amountToApprove, ROUTER_ADDRESS)
 }

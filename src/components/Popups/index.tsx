@@ -10,11 +10,11 @@ const MobilePopupWrapper = styled.div<{ height: string | number }>`
   height: ${({ height }) => height};
   margin: ${({ height }) => (height ? '0 auto;' : 0)};
   margin-bottom: ${({ height }) => (height ? '20px' : 0)}};
-
   display: none;
-  ${({ theme }) => theme.mediaWidth.upToSmall`
+
+  ${({ theme }) => theme.mediaQueries.sm} {
     display: block;
-  `};
+  }
 `
 
 const MobilePopupInner = styled.div`
@@ -37,9 +37,9 @@ const FixedPopupColumn = styled(AutoColumn)`
   width: 100%;
   z-index: 2;
 
-  ${({ theme }) => theme.mediaWidth.upToSmall`
+  ${({ theme }) => theme.mediaQueries.sm} {
     display: none;
-  `};
+  }
 `
 
 export default function Popups() {
@@ -49,7 +49,7 @@ export default function Popups() {
   return (
     <>
       <FixedPopupColumn gap="20px">
-        {activePopups.map(item => (
+        {activePopups.map((item) => (
           <PopupItem key={item.key} content={item.content} popKey={item.key} removeAfterMs={item.removeAfterMs} />
         ))}
       </FixedPopupColumn>
@@ -58,7 +58,7 @@ export default function Popups() {
           {activePopups // reverse so new items up front
             .slice(0)
             .reverse()
-            .map(item => (
+            .map((item) => (
               <PopupItem key={item.key} content={item.content} popKey={item.key} removeAfterMs={item.removeAfterMs} />
             ))}
         </MobilePopupInner>

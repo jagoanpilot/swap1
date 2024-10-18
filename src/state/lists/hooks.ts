@@ -14,12 +14,15 @@ export interface TagInfo extends TagDetails {
  */
 export class WrappedTokenInfo extends Token {
   public readonly tokenInfo: TokenInfo
+
   public readonly tags: TagInfo[]
+
   constructor(tokenInfo: TokenInfo, tags: TagInfo[]) {
     super(tokenInfo.chainId, tokenInfo.address, tokenInfo.decimals, tokenInfo.symbol, tokenInfo.name)
     this.tokenInfo = tokenInfo
     this.tags = tags
   }
+
   public get logoURI(): string | undefined {
     return this.tokenInfo.logoURI
   }
@@ -32,7 +35,7 @@ export type TokenAddressMap = Readonly<{ [chainId in ChainId]: Readonly<{ [token
  */
 const EMPTY_LIST: TokenAddressMap = {
   [ChainId.MAINNET]: {},
-  [ChainId.TESTNET]: {}
+  [ChainId.BSCTESTNET]: {}
 }
 
 const listCache: WeakMap<TokenList, TokenAddressMap> | null =

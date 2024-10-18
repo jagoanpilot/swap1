@@ -1,82 +1,39 @@
-import { createWeb3ReactRoot, Web3ReactProvider } from '@web3-react/core'
-import 'inter-ui'
 import React, { StrictMode } from 'react'
-import { isMobile } from 'react-device-detect'
 import ReactDOM from 'react-dom'
-import ReactGA from 'react-ga'
-import { Provider } from 'react-redux'
-import { ThemeProvider as StyledThemeProvider } from 'styled-components'
-import { NetworkContextName } from './constants'
-import './i18n'
+import { ResetCSS } from '@pancakeswap-libs/uikit'
+import GlobalStyle from './style/Global'
 import App from './pages/App'
-import store from './state'
-import { useIsDarkMode } from './state/user/hooks'
 import ApplicationUpdater from './state/application/updater'
 import ListsUpdater from './state/lists/updater'
 import MulticallUpdater from './state/multicall/updater'
 import TransactionUpdater from './state/transactions/updater'
-import UserUpdater from './state/user/updater'
-import { lightTheme, darkTheme } from './theme'
-import { FixedGlobalStyle, ThemedGlobalStyle } from './components/Shared'
-import getLibrary from './utils/getLibrary'
-
-const Web3ProviderNetwork = createWeb3ReactRoot(NetworkContextName)
+import ToastListener from './components/ToastListener'
+import Providers from './Providers'
+import 'inter-ui'
+import './i18n'
 
 if ('ethereum' in window) {
-  ;(window.ethereum as any).autoRefreshOnNetworkChange = false
+  (window.ethereum as any).autoRefreshOnNetworkChange = false
 }
 
-const GOOGLE_ANALYTICS_ID: string | undefined = process.env.REACT_APP_GOOGLE_ANALYTICS_ID
-if (typeof GOOGLE_ANALYTICS_ID === 'string') {
-  ReactGA.initialize(GOOGLE_ANALYTICS_ID)
-  ReactGA.set({
-    customBrowserType: !isMobile ? 'desktop' : 'web3' in window || 'ethereum' in window ? 'mobileWeb3' : 'mobileRegular'
-  })
-} else {
-  ReactGA.initialize('test', { testMode: true, debug: true })
-}
-
-window.addEventListener('error', error => {
-  localStorage && localStorage.removeItem('redux_localstorage_simple_lists')
-  ReactGA.exception({
-    description: `${error.message} @ ${error.filename}:${error.lineno}:${error.colno}`,
-    fatal: true
-  })
+window.addEventListener('error', () => {
+   localStorage?.removeItem('redux_localstorage_simple_lists')
 })
-
-function Updaters() {
-  return (
-    <>
-      <ListsUpdater />
-      <UserUpdater />
-      <ApplicationUpdater />
-      <TransactionUpdater />
-      <MulticallUpdater />
-    </>
-  )
-}
-
-function ThemeProvider({ children }: { children?: React.ReactNode }) {
-  const isDark = useIsDarkMode()
-  const theme = isDark ? darkTheme : lightTheme
-
-  return <StyledThemeProvider theme={theme}>{children}</StyledThemeProvider>
-}
 
 ReactDOM.render(
   <StrictMode>
-    <FixedGlobalStyle />
-    <Web3ReactProvider getLibrary={getLibrary}>
-      <Web3ProviderNetwork getLibrary={getLibrary}>
-        <Provider store={store}>
-          <Updaters />
-          <ThemeProvider>
-            <ThemedGlobalStyle />
-            <App />
-          </ThemeProvider>
-        </Provider>
-      </Web3ProviderNetwork>
-    </Web3ReactProvider>
+    <Providers>
+      <>
+        <ListsUpdater />
+        <ApplicationUpdater />
+        <TransactionUpdater />
+        <MulticallUpdater />
+        <ToastListener />
+      </>
+      <ResetCSS />
+      <GlobalStyle />
+      <App />
+    </Providers>
   </StrictMode>,
   document.getElementById('root')
 )

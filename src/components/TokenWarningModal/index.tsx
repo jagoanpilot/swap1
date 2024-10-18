@@ -1,20 +1,21 @@
 import { Token } from '@pancakeswap-libs/sdk'
 import { transparentize } from 'polished'
+import { Button, Text } from '@pancakeswap-libs/uikit'
 import React, { useCallback, useMemo, useState } from 'react'
 import styled from 'styled-components'
+import { AlertTriangle } from 'react-feather'
+import useI18n from 'hooks/useI18n'
 import { useActiveWeb3React } from '../../hooks'
 import { useAllTokens } from '../../hooks/Tokens'
-import { ExternalLink, TYPE } from '../Shared'
-import { getEtherscanLink, shortenAddress } from '../../utils'
+import { getBscScanLink, shortenAddress } from '../../utils'
+import { ExternalLink } from '../Shared'
 import CurrencyLogo from '../CurrencyLogo'
 import Modal from '../Modal'
 import { AutoRow, RowBetween } from '../Row'
 import { AutoColumn } from '../Column'
-import { AlertTriangle } from 'react-feather'
-import { ButtonError } from '../Button'
 
 const Wrapper = styled.div<{ error: boolean }>`
-  background: ${({ theme }) => transparentize(0.6, theme.colors.bg3)};
+  background: ${({ theme }) => transparentize(0.6, theme.colors.tertiary)};
   padding: 0.75rem;
   border-radius: 20px;
 `
@@ -30,7 +31,7 @@ const WarningContainer = styled.div`
 `
 
 const StyledWarningIcon = styled(AlertTriangle)`
-  stroke: ${({ theme }) => theme.colors.red2};
+  stroke: ${({ theme }) => theme.colors.failure};
 `
 
 interface TokenWarningCardProps {
@@ -39,7 +40,7 @@ interface TokenWarningCardProps {
 
 function TokenWarningCard({ token }: TokenWarningCardProps) {
   const { chainId } = useActiveWeb3React()
-
+  const TranslateString = useI18n()
   const tokenSymbol = token?.symbol?.toLowerCase() ?? ''
   const tokenName = token?.name?.toLowerCase() ?? ''
 
@@ -48,7 +49,7 @@ function TokenWarningCard({ token }: TokenWarningCardProps) {
   const duplicateNameOrSymbol = useMemo(() => {
     if (!token || !chainId) return false
 
-    return Object.keys(allTokens).some(tokenAddress => {
+    return Object.keys(allTokens).some((tokenAddress) => {
       const userToken = allTokens[tokenAddress]
       if (userToken.equals(token)) {
         return false
@@ -63,18 +64,20 @@ function TokenWarningCard({ token }: TokenWarningCardProps) {
     <Wrapper error={duplicateNameOrSymbol}>
       <AutoRow gap="6px">
         <AutoColumn gap="24px">
-          <CurrencyLogo currency={token} size={'16px'} />
+          <CurrencyLogo currency={token} size="16px" />
           <div> </div>
         </AutoColumn>
         <AutoColumn gap="10px" justify="flex-start">
-          <TYPE.main>
+          <Text>
             {token && token.name && token.symbol && token.name !== token.symbol
               ? `${token.name} (${token.symbol})`
               : token.name || token.symbol}{' '}
-          </TYPE.main>
+          </Text>
           {chainId && (
-            <ExternalLink style={{ fontWeight: 400 }} href={getEtherscanLink(chainId, token.address, 'token')}>
-              <TYPE.blue title={token.address}>{shortenAddress(token.address)} (View on BscScan)</TYPE.blue>
+            <ExternalLink style={{ fontWeight: 400 }} href={getBscScanLink(chainId, token.address, 'token')}>
+              <Text title={token.address}>
+                {shortenAddress(token.address)} {TranslateString(116, '(View on BscScan)')}
+              </Text>
             </ExternalLink>
           )}
         </AutoColumn>
@@ -86,14 +89,15 @@ function TokenWarningCard({ token }: TokenWarningCardProps) {
 export default function TokenWarningModal({
   isOpen,
   tokens,
-  onConfirm
+  onConfirm,
 }: {
   isOpen: boolean
   tokens: Token[]
   onConfirm: () => void
 }) {
   const [understandChecked, setUnderstandChecked] = useState(false)
-  const toggleUnderstand = useCallback(() => setUnderstandChecked(uc => !uc), [])
+  const toggleUnderstand = useCallback(() => setUnderstandChecked((uc) => !uc), [])
+  const TranslateString = useI18n()
 
   const handleDismiss = useCallback(() => null, [])
   return (
@@ -102,49 +106,50 @@ export default function TokenWarningModal({
         <AutoColumn gap="lg">
           <AutoRow gap="6px">
             <StyledWarningIcon />
-            <TYPE.main color={'red2'}>Token imported</TYPE.main>
+            <Text color="failure">{TranslateString(1128, 'Token imported')}</Text>
           </AutoRow>
-          <TYPE.body color={'red2'}>
-            Anyone can create an BEP20 token on BSC with <em>any</em> name, including creating fake versions of
-            existing tokens and tokens that claim to represent projects that do not have a token.
-          </TYPE.body>
-          <TYPE.body color={'red2'}>
-            This interface can load arbitrary tokens by token addresses. Please take extra caution and do your research
-            when interacting with arbitrary BEP20 tokens.
-          </TYPE.body>
-          <TYPE.body color={'red2'}>
-            If you purchase an arbitrary token, <strong>you may be unable to sell it back.</strong>
-          </TYPE.body>
-          {tokens.map(token => {
+          <Text>
+            {TranslateString(
+              1130,
+              'Anyone can create a BEP20 token on BSC with any name, including creating fake versions of existing tokens and tokens that claim to represent projects that do not have a token.'
+            )}
+          </Text>
+          <Text>
+            {TranslateString(
+              1132,
+              'This interface can load arbitrary tokens by token addresses. Please take extra caution and do your research when interacting with arbitrary BEP20 tokens.'
+            )}
+          </Text>
+          <Text>{TranslateString(1134, 'If you purchase an arbitrary token, you may be unable to sell it back.')}</Text>
+          {tokens.map((token) => {
             return <TokenWarningCard key={token.address} token={token} />
           })}
           <RowBetween>
             <div>
-              <label style={{ cursor: 'pointer', userSelect: 'none' }}>
+              <label htmlFor="understand-checkbox" style={{ cursor: 'pointer', userSelect: 'none' }}>
                 <input
+                  id="understand-checkbox"
                   type="checkbox"
                   className="understand-checkbox"
                   checked={understandChecked}
                   onChange={toggleUnderstand}
                 />{' '}
-                I understand
+                <Text as="span" ml="4px">
+                  {TranslateString(148, 'I understand')}
+                </Text>
               </label>
             </div>
-            <ButtonError
+            <Button
               disabled={!understandChecked}
-              error={true}
-              width={'140px'}
-              padding="0.5rem 1rem"
+              variant="danger"
+              style={{ width: '140px' }}
               className="token-dismiss-button"
-              style={{
-                borderRadius: '10px'
-              }}
               onClick={() => {
                 onConfirm()
               }}
             >
-              <TYPE.body color="white">Continue</TYPE.body>
-            </ButtonError>
+              {TranslateString(150, 'Continue')}
+            </Button>
           </RowBetween>
         </AutoColumn>
       </WarningContainer>

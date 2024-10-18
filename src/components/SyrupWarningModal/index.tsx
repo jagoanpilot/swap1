@@ -1,11 +1,10 @@
 import React, { useCallback, useState } from 'react'
 import styled from 'styled-components'
-import { TYPE } from '../Shared'
+import { Button, Text } from '@pancakeswap-libs/uikit'
+import { AlertTriangle } from 'react-feather'
 import Modal from '../Modal'
 import { AutoRow, RowBetween } from '../Row'
 import { AutoColumn } from '../Column'
-import { AlertTriangle } from 'react-feather'
-import { ButtonError } from '../Button'
 
 const WarningContainer = styled.div`
   max-width: 420px;
@@ -18,20 +17,20 @@ const WarningContainer = styled.div`
 `
 
 const StyledWarningIcon = styled(AlertTriangle)`
-  stroke: ${({ theme }) => theme.colors.red2};
+  stroke: ${({ theme }) => theme.colors.failure};
 `
 
 export default function SyrupWarningModal({
   isOpen,
   transactionType,
-  onConfirm
+  onConfirm,
 }: {
   isOpen: boolean
-  transactionType: string
+  transactionType: string | null
   onConfirm: () => void
 }) {
   const [understandChecked, setUnderstandChecked] = useState(false)
-  const toggleUnderstand = useCallback(() => setUnderstandChecked(uc => !uc), [])
+  const toggleUnderstand = useCallback(() => setUnderstandChecked((uc) => !uc), [])
 
   const handleDismiss = useCallback(() => null, [])
   return (
@@ -40,48 +39,44 @@ export default function SyrupWarningModal({
         <AutoColumn gap="lg">
           <AutoRow gap="6px">
             <StyledWarningIcon />
-            <TYPE.main color={'red2'}>Syrup Warning</TYPE.main>
+            <Text color="failure">Syrup Warning</Text>
           </AutoRow>
           {transactionType !== '' && (
             <>
-              <TYPE.body color={'red2'}>
+              <Text color="failure">
                 Please be careful when <strong>{transactionType}</strong> SYRUP.
-              </TYPE.body>
-              <TYPE.body color={'red2'}>
+              </Text>
+              <Text color="failure">
                 {transactionType === 'Buying'
                   ? 'You will not receive CAKE rewards for holding purchased SYRUP.'
                   : 'You will need to buy back the same amount of SYRUP to be able to convert back to CAKE.'}
-              </TYPE.body>
+              </Text>
             </>
           )}
           <RowBetween>
             <div>
-              <label style={{ cursor: 'pointer', userSelect: 'none' }}>
+              <label htmlFor="understand-checkbox" style={{ cursor: 'pointer', userSelect: 'none' }}>
                 <input
+                  id="understand-checkbox"
                   type="checkbox"
                   className="understand-checkbox"
                   checked={understandChecked}
                   onChange={toggleUnderstand}
                 />{' '}
-                I understand
+                <Text as="span">I understand</Text>
               </label>
             </div>
-            <ButtonError
+            <Button
               disabled={!understandChecked}
-              error={true}
-              width={'140px'}
-              padding="0.5rem 1rem"
-              className="token-dismiss-button"
-              style={{
-                borderRadius: '10px'
-              }}
+              variant="danger"
+              style={{ width: '140px' }}
               onClick={() => {
                 setUnderstandChecked(false)
                 onConfirm()
               }}
             >
-              <TYPE.body color="white">Continue</TYPE.body>
-            </ButtonError>
+              Continue
+            </Button>
           </RowBetween>
         </AutoColumn>
       </WarningContainer>

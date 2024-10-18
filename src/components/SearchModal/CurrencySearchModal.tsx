@@ -1,11 +1,9 @@
 import { Currency } from '@pancakeswap-libs/sdk'
 import React, { useCallback, useEffect, useState } from 'react'
-import ReactGA from 'react-ga'
 import useLast from '../../hooks/useLast'
 import { useSelectedListUrl } from '../../state/lists/hooks'
 import Modal from '../Modal'
 import { CurrencySearch } from './CurrencySearch'
-// import ListIntroduction from './ListIntroduction'
 import { ListSelect } from './ListSelect'
 
 interface CurrencySearchModalProps {
@@ -14,6 +12,7 @@ interface CurrencySearchModalProps {
   selectedCurrency?: Currency | null
   onCurrencySelect: (currency: Currency) => void
   otherSelectedCurrency?: Currency | null
+  // eslint-disable-next-line react/no-unused-prop-types
   showCommonBases?: boolean
 }
 
@@ -23,7 +22,6 @@ export default function CurrencySearchModal({
   onCurrencySelect,
   selectedCurrency,
   otherSelectedCurrency,
-  showCommonBases = false
 }: CurrencySearchModalProps) {
   const [listView, setListView] = useState<boolean>(false)
   const lastOpen = useLast(isOpen)
@@ -43,22 +41,11 @@ export default function CurrencySearchModal({
   )
 
   const handleClickChangeList = useCallback(() => {
-    ReactGA.event({
-      category: 'Lists',
-      action: 'Change Lists'
-    })
     setListView(true)
   }, [])
   const handleClickBack = useCallback(() => {
-    ReactGA.event({
-      category: 'Lists',
-      action: 'Back'
-    })
     setListView(false)
   }, [])
-  // const handleSelectListIntroduction = useCallback(() => {
-  //   setListView(true)
-  // }, [])
 
   const selectedListUrl = useSelectedListUrl()
   const noListSelected = !selectedListUrl

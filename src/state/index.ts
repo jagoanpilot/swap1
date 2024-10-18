@@ -10,6 +10,7 @@ import mint from './mint/reducer'
 import lists from './lists/reducer'
 import burn from './burn/reducer'
 import multicall from './multicall/reducer'
+import toasts from './toasts'
 import { getThemeCache } from '../utils/theme'
 
 type MergedState = {
@@ -22,7 +23,9 @@ type MergedState = {
 }
 const PERSISTED_KEYS: string[] = ['user', 'transactions']
 const loadedState = load({ states: PERSISTED_KEYS }) as MergedState
-loadedState.user && (loadedState.user.userDarkMode = getThemeCache())
+if (loadedState.user) {
+  loadedState.user.userDarkMode = getThemeCache()
+}
 
 const store = configureStore({
   reducer: {
@@ -33,10 +36,11 @@ const store = configureStore({
     mint,
     burn,
     multicall,
-    lists
+    lists,
+    toasts
   },
   middleware: [...getDefaultMiddleware({ thunk: false }), save({ states: PERSISTED_KEYS })],
-  preloadedState: loadedState
+  preloadedState: loadedState,
 })
 
 store.dispatch(updateVersion())

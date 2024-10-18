@@ -1,16 +1,17 @@
 import { Currency, ETHER, Token } from '@pancakeswap-libs/sdk'
 import React, { KeyboardEvent, RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import ReactGA from 'react-ga'
+import { Text, CloseIcon } from '@pancakeswap-libs/uikit'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { FixedSizeList } from 'react-window'
-import { Text } from 'rebass'
 import { ThemeContext } from 'styled-components'
+import AutoSizer from 'react-virtualized-auto-sizer'
+import useI18n from 'hooks/useI18n'
 import { useActiveWeb3React } from '../../hooks'
 import { AppState } from '../../state'
 import { useAllTokens, useToken } from '../../hooks/Tokens'
 import { useSelectedListInfo } from '../../state/lists/hooks'
-import { CloseIcon, LinkStyledButton, TYPE } from '../Shared'
+import { LinkStyledButton } from '../Shared'
 import { isAddress } from '../../utils'
 import Card from '../Card'
 import Column from '../Column'
@@ -23,9 +24,6 @@ import { filterTokens } from './filtering'
 import SortButton from './SortButton'
 import { useTokenComparator } from './sorting'
 import { PaddedColumn, SearchInput, Separator } from './styleds'
-import AutoSizer from 'react-virtualized-auto-sizer'
-import TranslatedText from '../TranslatedText'
-import { TranslateString } from '../../utils/translateTextHelpers'
 
 interface CurrencySearchProps {
   isOpen: boolean
@@ -44,7 +42,7 @@ export function CurrencySearch({
   showCommonBases,
   onDismiss,
   isOpen,
-  onChangeList
+  onChangeList,
 }: CurrencySearchProps) {
   const { t } = useTranslation()
   const { chainId } = useActiveWeb3React()
@@ -59,24 +57,14 @@ export function CurrencySearch({
   const isAddressSearch = isAddress(searchQuery)
   const searchToken = useToken(searchQuery)
 
-  useEffect(() => {
-    if (isAddressSearch) {
-      ReactGA.event({
-        category: 'Currency Select',
-        action: 'Search by address',
-        label: isAddressSearch
-      })
-    }
-  }, [isAddressSearch])
-
   const showETH: boolean = useMemo(() => {
     const s = searchQuery.toLowerCase().trim()
-    return s === '' || s === 'e' || s === 'et' || s === 'eth'
+    return s === '' || s === 'b' || s === 'bn' || s === 'bnb'
   }, [searchQuery])
 
   const tokenComparator = useTokenComparator(invertSearchOrder)
 
-  const audioPlay = useSelector<AppState, AppState['user']['audioPlay']>(state => state.user.audioPlay)
+  const audioPlay = useSelector<AppState, AppState['user']['audioPlay']>((state) => state.user.audioPlay)
 
   const filteredTokens: Token[] = useMemo(() => {
     if (isAddressSearch) return searchToken ? [searchToken] : []
@@ -89,14 +77,14 @@ export function CurrencySearch({
     const symbolMatch = searchQuery
       .toLowerCase()
       .split(/\s+/)
-      .filter(s => s.length > 0)
+      .filter((s) => s.length > 0)
     if (symbolMatch.length > 1) return sorted
 
     return [
       ...(searchToken ? [searchToken] : []),
       // sort any exact symbol matches first
-      ...sorted.filter(token => token.symbol?.toLowerCase() === symbolMatch[0]),
-      ...sorted.filter(token => token.symbol?.toLowerCase() !== symbolMatch[0])
+      ...sorted.filter((token) => token.symbol?.toLowerCase() === symbolMatch[0]),
+      ...sorted.filter((token) => token.symbol?.toLowerCase() !== symbolMatch[0]),
     ]
   }, [filteredTokens, searchQuery, searchToken, tokenComparator])
 
@@ -105,10 +93,10 @@ export function CurrencySearch({
       onCurrencySelect(currency)
       onDismiss()
       if (audioPlay) {
-        // @ts-ignore
-        const audio = document.getElementById('bgMusic')
-        // @ts-ignore
-        audio && audio.play()
+        const audio = document.getElementById('bgMusic') as HTMLAudioElement
+        if (audio) {
+          audio.play()
+        }
       }
     },
     [onDismiss, onCurrencySelect, audioPlay]
@@ -121,7 +109,7 @@ export function CurrencySearch({
 
   // manage focus on modal show
   const inputRef = useRef<HTMLInputElement>()
-  const handleInput = useCallback(event => {
+  const handleInput = useCallback((event) => {
     const input = event.target.value
     const checksummedInput = isAddress(input)
     setSearchQuery(checksummedInput || input)
@@ -132,7 +120,7 @@ export function CurrencySearch({
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
         const s = searchQuery.toLowerCase().trim()
-        if (s === 'eth') {
+        if (s === 'bnb') {
           handleCurrencySelect(ETHER)
         } else if (filteredSortedTokens.length > 0) {
           if (
@@ -148,17 +136,16 @@ export function CurrencySearch({
   )
 
   const selectedListInfo = useSelectedListInfo()
-
-
+  const TranslateString = useI18n()
   return (
     <Column style={{ width: '100%', flex: '1 1' }}>
       <PaddedColumn gap="14px">
         <RowBetween>
-          <Text fontWeight={500} fontSize={16}>
-            <TranslatedText translationId={82}>Select a token</TranslatedText>
+          <Text>
+            {TranslateString(82, 'Select a token')}
             <QuestionHelper
               text={TranslateString(
-                130,
+                128,
                 'Find a token by searching for its name or symbol or by pasting its address below.'
               )}
             />
@@ -178,10 +165,8 @@ export function CurrencySearch({
           <CommonBases chainId={chainId} onSelect={handleCurrencySelect} selectedCurrency={selectedCurrency} />
         )}
         <RowBetween>
-          <Text fontSize={14} fontWeight={500}>
-            <TranslatedText translationId={126}>Token name</TranslatedText>
-          </Text>
-          <SortButton ascending={invertSearchOrder} toggleSortOrder={() => setInvertSearchOrder(iso => !iso)} />
+          <Text fontSize="14px">{TranslateString(126, 'Token name')}</Text>
+          <SortButton ascending={invertSearchOrder} toggleSortOrder={() => setInvertSearchOrder((iso) => !iso)} />
         </RowBetween>
       </PaddedColumn>
 
@@ -217,15 +202,15 @@ export function CurrencySearch({
                       alt={`${selectedListInfo.current.name} list logo`}
                     />
                   ) : null}
-                  <TYPE.main id="currency-search-selected-list-name">{selectedListInfo.current.name}</TYPE.main>
+                  <Text id="currency-search-selected-list-name">{selectedListInfo.current.name}</Text>
                 </Row>
               ) : null}
               <LinkStyledButton
-                style={{ fontWeight: 500, color: theme.colors.text2, fontSize: 16 }}
+                style={{ fontWeight: 500, color: theme.colors.textSubtle, fontSize: 16 }}
                 onClick={onChangeList}
                 id="currency-search-change-list-button"
               >
-                {selectedListInfo.current ? 'Change' : 'Select a list'}
+                {selectedListInfo.current ? TranslateString(180, 'Change') : TranslateString(1152, 'Select a list')}
               </LinkStyledButton>
             </RowBetween>
           </Card>
@@ -234,3 +219,5 @@ export function CurrencySearch({
     </Column>
   )
 }
+
+export default CurrencySearch

@@ -2,39 +2,39 @@ import React, { useContext, useMemo } from 'react'
 import { ThemeContext } from 'styled-components'
 import { Pair } from '@pancakeswap-libs/sdk'
 import { Link } from 'react-router-dom'
-import { SwapPoolTabs } from '../../components/NavigationTabs'
+import { Button, CardBody, Text } from '@pancakeswap-libs/uikit'
+import CardNav from 'components/CardNav'
+import Question from 'components/QuestionHelper'
+import FullPositionCard from 'components/PositionCard'
+import { useTokenBalancesWithLoadingIndicator } from 'state/wallet/hooks'
+import { StyledInternalLink } from 'components/Shared'
+import { LightCard } from 'components/Card'
+import { RowBetween } from 'components/Row'
+import { AutoColumn } from 'components/Column'
+import Container from 'components/Container'
 
-import Question from '../../components/QuestionHelper'
-import FullPositionCard from '../../components/PositionCard'
-import { useUserHasLiquidityInAllTokens } from '../../data/V1'
-import { useTokenBalancesWithLoadingIndicator } from '../../state/wallet/hooks'
-import { StyledInternalLink, TYPE } from '../../components/Shared'
-import { Text } from 'rebass'
-import { LightCard } from '../../components/Card'
-import { RowBetween } from '../../components/Row'
-import { ButtonPrimary } from '../../components/Button'
-import { AutoColumn } from '../../components/Column'
-
-import { useActiveWeb3React } from '../../hooks'
-import { usePairs } from '../../data/Reserves'
-import { toV2LiquidityToken, useTrackedTokenPairs } from '../../state/user/hooks'
+import { useActiveWeb3React } from 'hooks'
+import { usePairs } from 'data/Reserves'
+import { toV2LiquidityToken, useTrackedTokenPairs } from 'state/user/hooks'
+import { Dots } from 'components/swap/styleds'
+import useI18n from 'hooks/useI18n'
+import PageHeader from 'components/PageHeader'
 import AppBody from '../AppBody'
-import { Dots } from '../../components/swap/styleds'
-import TranslatedText from '../../components/TranslatedText'
-import { TranslateString } from '../../utils/translateTextHelpers'
+
 
 export default function Pool() {
   const theme = useContext(ThemeContext)
   const { account } = useActiveWeb3React()
+  const TranslateString = useI18n()
 
   // fetch the user's balances of all tracked V2 LP tokens
   const trackedTokenPairs = useTrackedTokenPairs()
   const tokenPairsWithLiquidityTokens = useMemo(
-    () => trackedTokenPairs.map(tokens => ({ liquidityToken: toV2LiquidityToken(tokens), tokens })),
+    () => trackedTokenPairs.map((tokens) => ({ liquidityToken: toV2LiquidityToken(tokens), tokens })),
     [trackedTokenPairs]
   )
-  const liquidityTokens = useMemo(() => tokenPairsWithLiquidityTokens.map(tpwlt => tpwlt.liquidityToken), [
-    tokenPairsWithLiquidityTokens
+  const liquidityTokens = useMemo(() => tokenPairsWithLiquidityTokens.map((tpwlt) => tpwlt.liquidityToken), [
+    tokenPairsWithLiquidityTokens,
   ])
   const [v2PairsBalances, fetchingV2PairBalances] = useTokenBalancesWithLoadingIndicator(
     account ?? undefined,
@@ -52,76 +52,76 @@ export default function Pool() {
 
   const v2Pairs = usePairs(liquidityTokensWithBalances.map(({ tokens }) => tokens))
   const v2IsLoading =
-    fetchingV2PairBalances || v2Pairs?.length < liquidityTokensWithBalances.length || v2Pairs?.some(V2Pair => !V2Pair)
+    fetchingV2PairBalances || v2Pairs?.length < liquidityTokensWithBalances.length || v2Pairs?.some((V2Pair) => !V2Pair)
 
   const allV2PairsWithLiquidity = v2Pairs.map(([, pair]) => pair).filter((v2Pair): v2Pair is Pair => Boolean(v2Pair))
 
-  const hasV1Liquidity = useUserHasLiquidityInAllTokens()
-
   return (
-    <>
+    <Container>
+      <CardNav activeIndex={1} />
       <AppBody>
-        <SwapPoolTabs active={'pool'} />
+        <PageHeader
+          title={TranslateString(262, 'Liquidity')}
+          description={TranslateString(1168, 'Add liquidity to receive LP tokens')}
+        >
+          <Button id="join-pool-button" mb="16px" as={Link} to="/add/BNB">
+            {TranslateString(168, "Add Liquidity")}
+          </Button>
+        </PageHeader>
         <AutoColumn gap="lg" justify="center">
-          <ButtonPrimary id="join-pool-button" as={Link} style={{ padding: 16 }} to="/add/ETH">
-            <Text fontWeight={500} fontSize={20}>
-              <TranslatedText translationId={100}>Add Liquidity</TranslatedText>
-            </Text>
-          </ButtonPrimary>
+          <CardBody>
+            <AutoColumn gap="12px" style={{ width: '100%' }}>
+              <RowBetween padding="0 8px">
+                <Text color={theme.colors.text}>{TranslateString(107, 'Your Liquidity')}</Text>
+                <Question
+                  text={TranslateString(
+                    1170,
+                    'When you add liquidity, you are given pool tokens that represent your share. If you don’t see a pool you joined in this list, try importing a pool below.'
+                  )}
+                />
+              </RowBetween>
 
-          <AutoColumn gap="12px" style={{ width: '100%' }}>
-            <RowBetween padding={'0 8px'}>
-              <Text color={theme.colors.text1} fontWeight={500}>
-                <TranslatedText translationId={102}>Your Liquidity</TranslatedText>
-              </Text>
-              <Question
-                text={TranslateString(
-                  130,
-                  'When you add liquidity, you are given pool tokens that represent your share. If you don’t see a pool you joined in this list, try importing a pool below.'
-                )}
-              />
-            </RowBetween>
+              {!account ? (
+                <LightCard padding="40px">
+                  <Text color="textDisabled" textAlign="center">
+                    {TranslateString(156, 'Connect to a wallet to view your liquidity.')}
+                  </Text>
+                </LightCard>
+              ) : v2IsLoading ? (
+                <LightCard padding="40px">
+                  <Text color="textDisabled" textAlign="center">
+                    <Dots>Loading</Dots>
+                  </Text>
+                </LightCard>
+              ) : allV2PairsWithLiquidity?.length > 0 ? (
+                <>
+                  {allV2PairsWithLiquidity.map((v2Pair) => (
+                    <FullPositionCard key={v2Pair.liquidityToken.address} pair={v2Pair} />
+                  ))}
+                </>
+              ) : (
+                <LightCard padding="40px">
+                  <Text color="textDisabled" textAlign="center">
+                    {TranslateString(104, 'No liquidity found.')}
+                  </Text>
+                </LightCard>
+              )}
 
-            {!account ? (
-              <LightCard padding="40px">
-                <TYPE.body color={theme.colors.text3} textAlign="center">
-                  Connect to a wallet to view your liquidity.
-                </TYPE.body>
-              </LightCard>
-            ) : v2IsLoading ? (
-              <LightCard padding="40px">
-                <TYPE.body color={theme.colors.text3} textAlign="center">
-                  <Dots>Loading</Dots>
-                </TYPE.body>
-              </LightCard>
-            ) : allV2PairsWithLiquidity?.length > 0 ? (
-              <>
-                {allV2PairsWithLiquidity.map(v2Pair => (
-                  <FullPositionCard key={v2Pair.liquidityToken.address} pair={v2Pair} />
-                ))}
-              </>
-            ) : (
-              <LightCard padding="40px">
-                <TYPE.body color={theme.colors.text3} textAlign="center">
-                  <TranslatedText translationId={104}>No liquidity found.</TranslatedText>
-                </TYPE.body>
-              </LightCard>
-            )}
-
-            <div>
-              <Text textAlign="left" fontSize={14} style={{ padding: '.5rem 0 .5rem 0' }}>
-                {hasV1Liquidity ? 'Uniswap V1 liquidity found!' : TranslateString(106, "Don't see a pool you joined?")}{' '}
-                <StyledInternalLink id="import-pool-link" to={hasV1Liquidity ? '/migrate/v1' : '/find'}>
-                  {hasV1Liquidity ? 'Migrate now.' : TranslateString(108, 'Import it.')}
-                </StyledInternalLink>
-              </Text>
-              <Text textAlign="left" fontSize={14} style={{ padding: '.5rem 0 .5rem 0' }}>
-                Or, if you staked your FLIP tokens in a farm, unstake them to see them here.
-              </Text>
-            </div>
-          </AutoColumn>
+              <div>
+                <Text fontSize="14px" style={{ padding: '.5rem 0 .5rem 0' }}>
+                  {TranslateString(106, "Don't see a pool you joined?")}{' '}
+                  <StyledInternalLink id="import-pool-link" to="/find">
+                    {TranslateString(108, 'Import it.')}
+                  </StyledInternalLink>
+                </Text>
+                <Text fontSize="14px" style={{ padding: '.5rem 0 .5rem 0' }}>
+                  {TranslateString(1172, 'Or, if you staked your LP tokens in a farm, unstake them to see them here.')}
+                </Text>
+              </div>
+            </AutoColumn>
+          </CardBody>
         </AutoColumn>
       </AppBody>
-    </>
+    </Container>
   )
 }

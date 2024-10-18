@@ -3,20 +3,20 @@ import { transparentize } from 'polished'
 import React, { useCallback, useState } from 'react'
 import { usePopper } from 'react-popper'
 import styled from 'styled-components'
-import useInterval from '../../hooks/useInterval'
 import Portal from '@reach/portal'
+import useInterval from '../../hooks/useInterval'
 
 const PopoverContainer = styled.div<{ show: boolean }>`
   z-index: 9999;
 
-  visibility: ${props => (props.show ? 'visible' : 'hidden')};
-  opacity: ${props => (props.show ? 1 : 0)};
+  visibility: ${(props) => (props.show ? 'visible' : 'hidden')};
+  opacity: ${(props) => (props.show ? 1 : 0)};
   transition: visibility 150ms linear, opacity 150ms linear;
 
-  background: ${({ theme }) => theme.colors.bg2};
-  border: 1px solid ${({ theme }) => theme.colors.bg3};
-  box-shadow: 0 4px 8px 0 ${({ theme }) => transparentize(0.9, theme.colors.shadow1)};
-  color: ${({ theme }) => theme.colors.text2};
+  background: ${({ theme }) => theme.colors.invertedContrast};
+  border: 1px solid ${({ theme }) => theme.colors.tertiary};
+  box-shadow: 0 4px 8px 0 ${transparentize(0.9, '#2F80ED')};
+  color: ${({ theme }) => theme.colors.textSubtle};
   border-radius: 8px;
 `
 
@@ -36,9 +36,9 @@ const Arrow = styled.div`
     z-index: 9998;
 
     content: '';
-    border: 1px solid ${({ theme }) => theme.colors.bg3};
+    border: 1px solid ${({ theme }) => theme.colors.tertiary};
     transform: rotate(45deg);
-    background: ${({ theme }) => theme.colors.bg2};
+    background: ${({ theme }) => theme.colors.invertedContrast};
   }
 
   &.arrow-top {
@@ -91,11 +91,13 @@ export default function Popover({ content, show, children, placement = 'auto' }:
     strategy: 'fixed',
     modifiers: [
       { name: 'offset', options: { offset: [8, 8] } },
-      { name: 'arrow', options: { element: arrowElement } }
-    ]
+      { name: 'arrow', options: { element: arrowElement } },
+    ],
   })
   const updateCallback = useCallback(() => {
-    update && update()
+    if (update) {
+      update()
+    }
   }, [update])
   useInterval(updateCallback, show ? 100 : null)
 

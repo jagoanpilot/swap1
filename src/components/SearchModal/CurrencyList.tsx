@@ -1,13 +1,13 @@
 import { Currency, CurrencyAmount, currencyEquals, ETHER, Token } from '@pancakeswap-libs/sdk'
 import React, { CSSProperties, MutableRefObject, useCallback, useMemo } from 'react'
 import { FixedSizeList } from 'react-window'
-import { Text } from 'rebass'
 import styled from 'styled-components'
+import { Text } from '@pancakeswap-libs/uikit'
 import { useActiveWeb3React } from '../../hooks'
 import { useSelectedTokenList, WrappedTokenInfo } from '../../state/lists/hooks'
 import { useAddUserToken, useRemoveUserAddedToken } from '../../state/user/hooks'
 import { useCurrencyBalance } from '../../state/wallet/hooks'
-import { LinkStyledButton, TYPE } from '../Shared'
+import { LinkStyledButton } from '../Shared'
 import { useIsUserAddedToken } from '../../hooks/Tokens'
 import Column from '../Column'
 import { RowFixed } from '../Row'
@@ -29,8 +29,8 @@ const StyledBalanceText = styled(Text)`
 `
 
 const Tag = styled.div`
-  background-color: ${({ theme }) => theme.colors.bg3};
-  color: ${({ theme }) => theme.colors.text2};
+  background-color: ${({ theme }) => theme.colors.tertiary};
+  color: ${({ theme }) => theme.colors.textSubtle};
   font-size: 14px;
   border-radius: 4px;
   padding: 0.25rem 0.3rem 0.25rem 0.3rem;
@@ -56,7 +56,7 @@ function TokenTags({ currency }: { currency: Currency }) {
     return <span />
   }
 
-  const tags = currency.tags
+  const { tags } = currency
   if (!tags || tags.length === 0) return <span />
 
   const tag = tags[0]
@@ -85,7 +85,7 @@ function CurrencyRow({
   onSelect,
   isSelected,
   otherSelected,
-  style
+  style,
 }: {
   currency: Currency
   onSelect: () => void
@@ -112,37 +112,35 @@ function CurrencyRow({
       disabled={isSelected}
       selected={otherSelected}
     >
-      <CurrencyLogo currency={currency} size={'24px'} />
+      <CurrencyLogo currency={currency} size="24px" />
       <Column>
-        <Text title={currency.name} fontWeight={500}>
-          {currency.symbol}
-        </Text>
+        <Text title={currency.name}>{currency.symbol}</Text>
         <FadedSpan>
           {!isOnSelectedList && customAdded && !(currency instanceof WrappedTokenInfo) ? (
-            <TYPE.main fontWeight={500}>
+            <Text>
               Added by user
               <LinkStyledButton
-                onClick={event => {
+                onClick={(event) => {
                   event.stopPropagation()
                   if (chainId && currency instanceof Token) removeToken(chainId, currency.address)
                 }}
               >
                 (Remove)
               </LinkStyledButton>
-            </TYPE.main>
+            </Text>
           ) : null}
           {!isOnSelectedList && !customAdded && !(currency instanceof WrappedTokenInfo) ? (
-            <TYPE.main fontWeight={500}>
+            <Text>
               Found by address
               <LinkStyledButton
-                onClick={event => {
+                onClick={(event) => {
                   event.stopPropagation()
                   if (currency instanceof Token) addToken(currency)
                 }}
               >
                 (Add)
               </LinkStyledButton>
-            </TYPE.main>
+            </Text>
           ) : null}
         </FadedSpan>
       </Column>
@@ -161,7 +159,7 @@ export default function CurrencyList({
   onCurrencySelect,
   otherCurrency,
   fixedListRef,
-  showETH
+  showETH,
 }: {
   height: number
   currencies: Currency[]
@@ -193,8 +191,6 @@ export default function CurrencyList({
   )
 
   const itemKey = useCallback((index: number, data: any) => currencyKey(data[index]), [])
-
-  // console.log(itemData)
 
   return (
     <FixedSizeList

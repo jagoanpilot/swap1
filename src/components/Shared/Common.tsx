@@ -1,43 +1,6 @@
 import React, { HTMLProps, useCallback } from 'react'
-import ReactGA from 'react-ga'
 import { Link } from 'react-router-dom'
 import styled, { keyframes } from 'styled-components'
-import { darken } from 'polished'
-import { ArrowLeft, X } from 'react-feather'
-
-export const Button = styled.button.attrs<{ warning: boolean }, { backgroundColor: string }>(({ warning, theme }) => ({
-  backgroundColor: warning ? theme.colors.red1 : theme.colors.primary1
-}))`
-  padding: 1rem 2rem 1rem 2rem;
-  border-radius: 3rem;
-  cursor: pointer;
-  user-select: none;
-  font-size: 1rem;
-  border: none;
-  outline: none;
-  background-color: ${({ backgroundColor }) => backgroundColor};
-  color: ${({ theme }) => theme.colors.white};
-  width: 100%;
-
-  :hover,
-  :focus {
-    background-color: ${({ backgroundColor }) => darken(0.05, backgroundColor)};
-  }
-
-  :active {
-    background-color: ${({ backgroundColor }) => darken(0.1, backgroundColor)};
-  }
-
-  :disabled {
-    background-color: ${({ theme }) => theme.colors.bg1};
-    color: ${({ theme }) => theme.colors.text4};
-    cursor: auto;
-  }
-`
-
-export const CloseIcon = styled(X)<{ onClick: () => void }>`
-  cursor: pointer;
-`
 
 // A button that triggers some onClick result, but looks like a link.
 export const LinkStyledButton = styled.button<{ disabled?: boolean }>`
@@ -46,7 +9,7 @@ export const LinkStyledButton = styled.button<{ disabled?: boolean }>`
   background: none;
 
   cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
-  color: ${({ theme, disabled }) => (disabled ? theme.colors.text2 : theme.colors.primary1)};
+  color: ${({ theme, disabled }) => (disabled ? theme.colors.textSubtle : theme.colors.primary)};
   font-weight: 500;
 
   :hover {
@@ -67,7 +30,7 @@ export const LinkStyledButton = styled.button<{ disabled?: boolean }>`
 export const StyledInternalLink = styled(Link)`
   text-decoration: none;
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary1};
+  color: ${({ theme }) => theme.colors.primary};
   font-weight: 500;
 
   :hover {
@@ -87,7 +50,7 @@ export const StyledInternalLink = styled(Link)`
 const StyledLink = styled.a`
   text-decoration: none;
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary1};
+  color: ${({ theme }) => theme.colors.primary};
   font-weight: 500;
 
   :hover {
@@ -115,20 +78,11 @@ export function ExternalLink({
 }: Omit<HTMLProps<HTMLAnchorElement>, 'as' | 'ref' | 'onClick'> & { href: string }) {
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
-      // don't prevent default, don't redirect if it's a new tab
-      if (target === '_blank' || event.ctrlKey || event.metaKey) {
-        ReactGA.outboundLink({ label: href }, () => {
-          console.debug('Fired outbound link event', href)
-        })
-      } else {
+      if (!(target === '_blank' || event.ctrlKey || event.metaKey)) {
         event.preventDefault()
-        // send a ReactGA event and then trigger a location change
-        ReactGA.outboundLink({ label: href }, () => {
-          window.location.href = href
-        })
       }
     },
-    [href, target]
+    [target]
   )
   return <StyledLink target={target} rel={rel} href={href} onClick={handleClick} {...rest} />
 }
@@ -147,14 +101,3 @@ export const Spinner = styled.img`
   width: 16px;
   height: 16px;
 `
-
-const BackArrowLink = styled(StyledInternalLink)`
-  color: ${({ theme }) => theme.colors.text1};
-`
-export function BackArrow({ to }: { to: string }) {
-  return (
-    <BackArrowLink to={to}>
-      <ArrowLeft />
-    </BackArrowLink>
-  )
-}
