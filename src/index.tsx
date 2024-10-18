@@ -1,39 +1,44 @@
-import React, { StrictMode } from 'react'
-import ReactDOM from 'react-dom'
-import { ResetCSS } from '@pancakeswap-libs/uikit'
-import GlobalStyle from './style/Global'
-import App from './pages/App'
-import ApplicationUpdater from './state/application/updater'
-import ListsUpdater from './state/lists/updater'
-import MulticallUpdater from './state/multicall/updater'
-import TransactionUpdater from './state/transactions/updater'
-import ToastListener from './components/ToastListener'
-import Providers from './Providers'
-import 'inter-ui'
-import './i18n'
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactGA from 'react-ga';
+import { isMobile } from 'react-device-detect';
+import App from './App';
+import { HashRouter } from 'react-router-dom';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import './constants/index';
 
-if ('ethereum' in window) {
-  (window.ethereum as any).autoRefreshOnNetworkChange = false
+const GOOGLE_ANALYTICS_ID: string | undefined =
+  process.env.REACT_APP_GOOGLE_ANALYTICS_ID;
+if (typeof GOOGLE_ANALYTICS_ID === 'string') {
+  ReactGA.initialize(GOOGLE_ANALYTICS_ID);
+  ReactGA.pageview(window.location.pathname + window.location.search);
+  ReactGA.set({
+    customBrowserType: !isMobile
+      ? 'desktop'
+      : 'web3' in window || 'ethereum' in window
+      ? 'mobileWeb3'
+      : 'mobileRegular',
+  });
+} else {
+  ReactGA.initialize('test', { testMode: true, debug: true });
 }
 
-window.addEventListener('error', () => {
-   localStorage?.removeItem('redux_localstorage_simple_lists')
-})
+window.addEventListener('error', (error) => {
+  ReactGA.exception({
+    description: `${error.message} @ ${error.filename}:${error.lineno}:${error.colno}`,
+    fatal: true,
+  });
+});
 
 ReactDOM.render(
-  <StrictMode>
-    <Providers>
-      <>
-        <ListsUpdater />
-        <ApplicationUpdater />
-        <TransactionUpdater />
-        <MulticallUpdater />
-        <ToastListener />
-      </>
-      <ResetCSS />
-      <GlobalStyle />
+  <React.StrictMode>
+    <HashRouter>
       <App />
-    </Providers>
-  </StrictMode>,
-  document.getElementById('root')
-)
+    </HashRouter>
+  </React.StrictMode>,
+  document.getElementById('root'),
+);
+
+if (process.env.REACT_APP_SERVICE_WORKER !== 'false') {
+  serviceWorkerRegistration.register();
+}
