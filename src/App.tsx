@@ -1,340 +1,187 @@
-import React, { lazy, Suspense, useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Switch, Route } from 'react-router-dom';
+import React, { lazy } from 'react'
+import { Router, Redirect, Route, Switch } from 'react-router-dom'
+import { ResetCSS } from '@pancakeswap/uikit'
+import { useWeb3React } from '@web3-react/core'
+import BigNumber from 'bignumber.js'
+import useEagerConnect from 'hooks/useEagerConnect'
+import useUserAgent from 'hooks/useUserAgent'
+import useScrollOnRouteChange from 'hooks/useScrollOnRouteChange'
+import { usePollBlockNumber } from 'state/block/hooks'
+import { usePollCoreFarmData } from 'state/farms/hooks'
+import { useFetchProfile } from 'state/profile/hooks'
+import { DatePickerPortal } from 'components/DatePicker'
+import { nftsBaseUrl } from 'views/Nft/market/constants'
+import GlobalStyle from './style/Global'
+import Menu from './components/Menu'
+import SuspenseWithChunkError from './components/SuspenseWithChunkError'
+import { ToastListener } from './contexts/ToastsContext'
+import PageLoader from './components/Loader/PageLoader'
+import EasterEgg from './components/EasterEgg'
+import GlobalCheckClaimStatus from './components/GlobalCheckClaimStatus'
+import history from './routerHistory'
+// Views included in the main bundle
+import Pools from './views/Pools'
+import Swap from './views/Swap'
 import {
-  ThemeProvider as MuiThemeProvider,
-  CssBaseline,
-} from '@material-ui/core';
-import { Provider } from 'react-redux';
-import store from 'state';
-import GoogleAnalyticsReporter from './components/GoogleAnalytics/GoogleAnalyticsReporter';
-import { OrderlyConfigProvider } from '@orderly.network/hooks';
+  RedirectDuplicateTokenIds,
+  RedirectOldAddLiquidityPathStructure,
+  RedirectToAddLiquidity,
+} from './views/AddLiquidity/redirects'
+import RedirectOldRemoveLiquidityPathStructure from './views/RemoveLiquidity/redirects'
+import { RedirectPathToSwapOnly, RedirectToSwap } from './views/Swap/redirects'
 
-const PerpsPage = lazy(() => import('./pages/PerpsPage'));
-const DragonPage = lazy(() => import('./pages/DragonPage'));
-const FarmPage = lazy(() => import('./pages/FarmPage'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const PoolsPage = lazy(() => import('./pages/PoolsPage'));
-const SwapPage = lazy(() => import('./pages/SwapPage'));
-const ContestPage = lazy(() => import('./pages/ContestPage'));
-const ConvertQUICKPage = lazy(() => import('./pages/ConvertQUICKPage'));
-const BondsPage = lazy(() => import('./pages/BondsPage'));
-const CalculatorPage = lazy(() => import('./pages/CalculatorPage'));
-const NewsletterPage = lazy(() => import('./pages/NewsletterPage'));
-const TOSPage = lazy(() => import('./pages/TOSPage'));
-const AnalyticsTokenDetails = lazy(() =>
-  import('./pages/AnalyticsTokenDetails'),
-);
-const AnalyticsPairDetails = lazy(() => import('./pages/AnalyticsPairDetails'));
-const AnalyticsOverview = lazy(() =>
-  import('./pages/AnalyticsPage/AnalyticsOverview'),
-);
-const AnalyticsHeader = lazy(() => import('./pages/AnalyticsPage'));
-const AnalyticsTokens = lazy(() =>
-  import('./pages/AnalyticsPage/AnalyticsTokens'),
-);
-const AnalyticsPairs = lazy(() =>
-  import('./pages/AnalyticsPage/AnalyticsPairs'),
-);
-const RemoveLiquidityV3Page = lazy(() =>
-  import('./pages/PoolsPage/v3/RemoveLiquidityPage'),
-);
-const IncreaseLiquidityV3Page = lazy(() =>
-  import('./pages/PoolsPage/v3/IncreaseLiquidityPage'),
-);
-const MigrateV2LiquidityPage = lazy(() =>
-  import('./pages/PoolsPage/v3/MigrateV2LiquidityPage'),
-);
-const MigrateV2DetailsPage = lazy(() =>
-  import('./pages/PoolsPage/v3/MigrateV2DetailsPage'),
-);
-const PositionPage = lazy(() => import('./pages/PoolsPage/v3/PositionPage'));
+// Route-based code splitting
+// Only pool is included in the main bundle because of it's the most visited page
+const Home = lazy(() => import('./views/Home'))
+const Farms = lazy(() => import('./views/Farms'))
+const FarmAuction = lazy(() => import('./views/FarmAuction'))
+const Lottery = lazy(() => import('./views/Lottery'))
+const Ifos = lazy(() => import('./views/Ifos'))
+const NotFound = lazy(() => import('./views/NotFound'))
+const Teams = lazy(() => import('./views/Teams'))
+const Team = lazy(() => import('./views/Teams/Team'))
+const TradingCompetition = lazy(() => import('./views/TradingCompetition'))
+const Predictions = lazy(() => import('./views/Predictions'))
+const PredictionsLeaderboard = lazy(() => import('./views/Predictions/Leaderboard'))
+const Voting = lazy(() => import('./views/Voting'))
+const Proposal = lazy(() => import('./views/Voting/Proposal'))
+const CreateProposal = lazy(() => import('./views/Voting/CreateProposal'))
+const AddLiquidity = lazy(() => import('./views/AddLiquidity'))
+const Liquidity = lazy(() => import('./views/Pool'))
+const PoolFinder = lazy(() => import('./views/PoolFinder'))
+const RemoveLiquidity = lazy(() => import('./views/RemoveLiquidity'))
+const Info = lazy(() => import('./views/Info'))
+const NftMarket = lazy(() => import('./views/Nft/market'))
+const ProfileCreation = lazy(() => import('./views/ProfileCreation'))
+const PancakeSquad = lazy(() => import('./views/PancakeSquad'))
 
-import { PageLayout } from 'layouts';
-import { Popups, TermsWrapper } from 'components';
-import ApplicationUpdater from 'state/application/updater';
-import TransactionUpdater from 'state/transactions/updater';
-import ListsUpdater from 'state/lists/updater';
-import UserUpdater from 'state/user/updater';
-import MulticallUpdater from 'state/multicall/updater';
-import MultiCallV3Updater from 'state/multicall/v3/updater';
-import SyrupUpdater from 'state/syrups/updater';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import './i18n';
-import { mainTheme } from './theme';
-import Background from 'layouts/Background';
-import { RedirectExternal } from 'components/RedirectExternal/RedirectExternal';
-import NotFound404Page from 'pages/NotFound404Page';
-import ForbiddenPage from 'pages/ForbiddenPage';
-import { ArcxAnalyticsProvider } from '@arcxmoney/analytics';
-import '@orderly.network/react/dist/styles.css';
-import './index.scss';
-import { createWeb3Modal, defaultConfig } from '@web3modal/ethers5/react';
-import { ChainId } from '@uniswap/sdk';
-import { SUPPORTED_CHAINIDS } from 'constants/index';
-import { getConfig } from 'config/index';
-import 'connectors/passport';
-import {
-  createSoulZapApiClient,
-  SoulZapApiClient,
-} from 'utils/soulZapTrpcClient';
-import { BridgePage } from 'pages';
-
-const projectId = process.env.REACT_APP_WALLETCONNECT_PROJECT_ID ?? '';
-
-const metadata = {
-  name: 'QuickSwap',
-  description: 'Largest DEX on Polygon',
-  url: 'https://quickswap.exchange',
-  icons: ['https://quickswap.exchange/logo_circle.png'],
-};
-
-const ethersConfig = defaultConfig({
-  metadata,
-  defaultChainId: ChainId.MATIC,
-});
-
-const chainsToShow = SUPPORTED_CHAINIDS.filter((chainId) => {
-  const config = getConfig(chainId);
-  return !!config;
-});
-const chains = chainsToShow.map((chainId) => {
-  const config = getConfig(chainId);
-  return {
-    chainId,
-    name: config['networkName'],
-    currency: config['nativeCurrency']['symbol'],
-    explorerUrl: config['blockExplorer'],
-    rpcUrl: config['rpc'],
-  };
-});
-
-const chainImages: { [chainId: number]: string } = {};
-chainsToShow.forEach((chainId) => {
-  const config = getConfig(chainId);
-  chainImages[chainId] = config['nativeCurrencyImage'];
-});
-
-createWeb3Modal({
-  ethersConfig,
-  chains,
-  chainImages,
-  projectId,
-  enableAnalytics: true,
-  allowUnsupportedChain: true,
-  enableOnramp: true,
-});
-
-const ThemeProvider: React.FC<{ children: any }> = ({ children }) => {
-  const theme = mainTheme;
-
-  return <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>;
-};
-
-const Providers: React.FC<{ children: any }> = ({ children }) => {
-  return (
-    <Suspense fallback={<Background fallback={true} />}>
-      <ThemeProvider>
-        <CssBaseline />
-        {children}
-      </ThemeProvider>
-    </Suspense>
-  );
-};
-
-function Updaters() {
-  return (
-    <>
-      <ApplicationUpdater />
-      <TransactionUpdater />
-      <ListsUpdater />
-      <MulticallUpdater />
-      <MultiCallV3Updater />
-      <UserUpdater />
-      <SyrupUpdater />
-    </>
-  );
-}
-
-const queryClient = new QueryClient();
+// This config is required for number formatting
+BigNumber.config({
+  EXPONENTIAL_AT: 1000,
+  DECIMAL_PLACES: 80,
+})
 
 const App: React.FC = () => {
-  const arcxAPIKey = process.env.REACT_APP_ARCX_KEY ?? '';
-  const soulZapAPIEndpoint = process.env.REACT_APP_SOULZAP_API_ENDPOINT;
-  const [soulZapApiClient] = useState(() =>
-    createSoulZapApiClient(soulZapAPIEndpoint),
-  );
+  const { account } = useWeb3React()
+
+  usePollBlockNumber()
+  useEagerConnect()
+  useFetchProfile()
+  usePollCoreFarmData()
+  useScrollOnRouteChange()
+  useUserAgent()
 
   return (
-    <ArcxAnalyticsProvider apiKey={arcxAPIKey}>
-      <SoulZapApiClient.Provider
-        client={soulZapApiClient}
-        queryClient={queryClient}
-      >
-        <QueryClientProvider client={queryClient}>
-          <OrderlyConfigProvider brokerId='quick_perps' networkId='mainnet'>
-            <Route component={GoogleAnalyticsReporter} />
-            <Provider store={store}>
-              <Providers>
-                <TermsWrapper>
-                  <Updaters />
-                  <Popups />
-                  <Switch>
-                    <Route exact path='/'>
-                      <PageLayout>
-                        <LandingPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/swap/:version?'>
-                      <PageLayout>
-                        <SwapPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/bridge'>
-                      <PageLayout>
-                        <BridgePage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/leader-board'>
-                      <PageLayout>
-                        <ContestPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/pools/:version?'>
-                      <PageLayout>
-                        <PoolsPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact strict path='/pool/:tokenId'>
-                      <PageLayout>
-                        <PositionPage></PositionPage>
-                      </PageLayout>
-                    </Route>
-                    <Route exact strict path='/falkor'>
-                      <PageLayout>
-                        <PerpsPage />
-                      </PageLayout>
-                    </Route>
-                    <Route
-                      exact
-                      path='/add/:currencyIdA?/:currencyIdB?/:version?'
-                    >
-                      <PageLayout>
-                        <PoolsPage></PoolsPage>
-                      </PageLayout>
-                    </Route>
-                    <Route
-                      exact
-                      path='/increase/:currencyIdA?/:currencyIdB?/:tokenId'
-                    >
-                      <PageLayout>
-                        <IncreaseLiquidityV3Page></IncreaseLiquidityV3Page>
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/remove/:tokenId'>
-                      <PageLayout>
-                        <RemoveLiquidityV3Page></RemoveLiquidityV3Page>
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/migrate'>
-                      <PageLayout>
-                        <MigrateV2LiquidityPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/migrate/:currencyIdA/:currencyIdB'>
-                      <PageLayout>
-                        <MigrateV2DetailsPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/farm/:version?'>
-                      <PageLayout>
-                        <FarmPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/dragons'>
-                      <PageLayout>
-                        <DragonPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/convert'>
-                      <PageLayout>
-                        <ConvertQUICKPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/bonds'>
-                      <PageLayout>
-                        <BondsPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/newsletter'>
-                      <PageLayout>
-                        <NewsletterPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/tos'>
-                      <PageLayout>
-                        <TOSPage />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/gamehub'>
-                      <RedirectExternal
-                        to={`${process.env.REACT_APP_GAMEHUB_URL}`}
-                        target={'_top'}
-                      ></RedirectExternal>
-                    </Route>
-                    <Route exact path='/analytics/:version?'>
-                      <PageLayout>
-                        <AnalyticsHeader />
-                        <AnalyticsOverview />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/analytics/:version/tokens'>
-                      <PageLayout>
-                        <AnalyticsHeader />
-                        <AnalyticsTokens />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/analytics/:version/pairs'>
-                      <PageLayout>
-                        <AnalyticsHeader />
-                        <AnalyticsPairs />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/analytics/:version/token/:id'>
-                      <PageLayout>
-                        <AnalyticsTokenDetails />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/analytics/:version/pair/:id'>
-                      <PageLayout>
-                        <AnalyticsPairDetails />
-                      </PageLayout>
-                    </Route>
-                    <Route exact path='/calculator/0.01-eth-to-usd'>
-                      <PageLayout>
-                        <CalculatorPage />
-                      </PageLayout>
-                    </Route>
-                    <Route path='/forbidden'>
-                      <PageLayout>
-                        <ForbiddenPage />
-                      </PageLayout>
-                    </Route>
-                    <Route path='*'>
-                      <PageLayout>
-                        <NotFound404Page />
-                      </PageLayout>
-                    </Route>
-                  </Switch>
-                </TermsWrapper>
-              </Providers>
-            </Provider>
-          </OrderlyConfigProvider>
-        </QueryClientProvider>
-      </SoulZapApiClient.Provider>
-    </ArcxAnalyticsProvider>
-  );
-};
+    <Router history={history}>
+      <ResetCSS />
+      <GlobalStyle />
+      <GlobalCheckClaimStatus excludeLocations={[]} />
+      <Menu>
+        <SuspenseWithChunkError fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/" exact>
+              <Home />
+            </Route>
+            <Route exact path="/farms/auction">
+              <FarmAuction />
+            </Route>
+            <Route path="/farms">
+              <Farms />
+            </Route>
+            <Route path="/pools">
+              <Pools />
+            </Route>
+            <Route path="/lottery">
+              <Lottery />
+            </Route>
+            <Route path="/ifo">
+              <Ifos />
+            </Route>
+            <Route exact path="/teams">
+              <Teams />
+            </Route>
+            <Route path="/teams/:id">
+              <Team />
+            </Route>
+            <Route path="/create-profile">
+              <ProfileCreation />
+            </Route>
+            <Route path="/competition">
+              <TradingCompetition />
+            </Route>
+            <Route exact path="/prediction">
+              <Predictions />
+            </Route>
+            <Route path="/prediction/leaderboard">
+              <PredictionsLeaderboard />
+            </Route>
+            <Route exact path="/voting">
+              <Voting />
+            </Route>
+            <Route exact path="/voting/proposal/create">
+              <CreateProposal />
+            </Route>
+            <Route path="/voting/proposal/:id">
+              <Proposal />
+            </Route>
 
-export default App;
+            {/* NFT */}
+            <Route path="/nfts">
+              <NftMarket />
+            </Route>
+
+            <Route path="/pancake-squad">
+              <PancakeSquad />
+            </Route>
+
+            {/* Info pages */}
+            <Route path="/info">
+              <Info />
+            </Route>
+
+            {/* Using this format because these components use routes injected props. We need to rework them with hooks */}
+            <Route exact strict path="/swap" component={Swap} />
+            <Route exact strict path="/swap/:outputCurrency" component={RedirectToSwap} />
+            <Route exact strict path="/send" component={RedirectPathToSwapOnly} />
+            <Route exact strict path="/find" component={PoolFinder} />
+            <Route exact strict path="/liquidity" component={Liquidity} />
+            <Route exact strict path="/create" component={RedirectToAddLiquidity} />
+            <Route exact path="/add" component={AddLiquidity} />
+            <Route exact path="/add/:currencyIdA" component={RedirectOldAddLiquidityPathStructure} />
+            <Route exact path="/add/:currencyIdA/:currencyIdB" component={RedirectDuplicateTokenIds} />
+            <Route exact path="/create" component={AddLiquidity} />
+            <Route exact path="/create/:currencyIdA" component={RedirectOldAddLiquidityPathStructure} />
+            <Route exact path="/create/:currencyIdA/:currencyIdB" component={RedirectDuplicateTokenIds} />
+            <Route exact strict path="/remove/:tokens" component={RedirectOldRemoveLiquidityPathStructure} />
+            <Route exact strict path="/remove/:currencyIdA/:currencyIdB" component={RemoveLiquidity} />
+
+            {/* Redirect */}
+            <Route path="/pool">
+              <Redirect to="/liquidity" />
+            </Route>
+            <Route path="/staking">
+              <Redirect to="/pools" />
+            </Route>
+            <Route path="/syrup">
+              <Redirect to="/pools" />
+            </Route>
+            <Route path="/collectibles">
+              <Redirect to="/nfts" />
+            </Route>
+            <Route path="/profile">
+              <Redirect to={`${nftsBaseUrl}/profile/${account?.toLowerCase() || ''}`} />
+            </Route>
+
+            {/* 404 */}
+            <Route component={NotFound} />
+          </Switch>
+        </SuspenseWithChunkError>
+      </Menu>
+      <EasterEgg iterations={2} />
+      <ToastListener />
+      <DatePickerPortal />
+    </Router>
+  )
+}
+
+export default React.memo(App)

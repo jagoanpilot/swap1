@@ -1,543 +1,268 @@
-import { Contract } from '@ethersproject/contracts';
-import abi from '@uniswap/liquidity-staker/build/StakingRewards.json';
-import { ChainId, WETH } from '@uniswap/sdk';
-import iUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json';
-import { useMemo } from 'react';
+import { useMemo } from 'react'
+import useActiveWeb3React from 'hooks/useActiveWeb3React'
 import {
-  ARGENT_WALLET_DETECTOR_ABI,
-  ARGENT_WALLET_DETECTOR_MAINNET_ADDRESS,
-} from 'constants/abis/argent-wallet-detector';
-import ENS_PUBLIC_RESOLVER_ABI from 'constants/abis/ens-public-resolver.json';
-import ENS_ABI from 'constants/abis/ens-registrar.json';
-import EIP_2612 from 'constants/abis/v3/eip_2612.json';
-import ERC20_ABI, { ERC20_BYTES32_ABI } from 'constants/abis/erc20';
-import V2ToV3MigratorABI from 'constants/abis/v3/migrator.json';
-import { STAKING_DUAL_REWARDS_INTERFACE } from 'constants/abis/staking-rewards';
-import UNISOCKS_ABI from 'constants/abis/unisocks.json';
-import WETH_ABI from 'constants/abis/weth.json';
-import NATIVE_CONVERTER_ABI from 'constants/abis/nativeConverter.json';
-import { MULTICALL_ABI } from 'constants/multicall';
-import {
-  V1_EXCHANGE_ABI,
-  V1_FACTORY_ABI,
-  V1_FACTORY_ADDRESSES,
-} from 'constants/v1';
-import { getContract } from 'utils';
-import { useActiveWeb3React } from 'hooks';
-import dragonsLair from 'abis/DragonLair.json';
-import router02 from '@uniswap/v2-periphery/build/IUniswapV2Router02.json';
-import QUICKConversionABI from 'constants/abis/quick-conversion.json';
-import {
-  GAMMA_MASTERCHEF_ADDRESSES,
-  MULTICALL_ADDRESS,
-  NONFUNGIBLE_POSITION_MANAGER_ADDRESSES,
-  QUOTER_ADDRESSES,
-  V3_MIGRATOR_ADDRESSES,
-  MULTICALL_NETWORKS,
-  V2_ROUTER_ADDRESS,
-  LAIR_ADDRESS,
-  QUICK_ADDRESS,
-  NEW_LAIR_ADDRESS,
-  QUICK_CONVERSION,
-  DL_QUICK_ADDRESS,
-  ZAP_ADDRESS,
-  UNI_NFT_POSITION_MANAGER_ADDRESS,
-  UNIV3_QUOTER_ADDRESSES,
-  STEER_PERIPHERY,
-  STEER_VAULT_REGISTRY,
-  PRICE_GETTER_ADDRESS,
-  MERKL_DISTRIBUTOR,
-  NATIVE_CONVERTER,
-} from 'constants/v3/addresses';
-import NewQuoterABI from 'constants/abis/v3/quoter.json';
-import UniV3QuoterABI from 'constants/abis/uni-v3/quoter.json';
-import MULTICALL2_ABI from 'constants/abis/v3/multicall.json';
-import NFTPosMan from 'constants/abis/v3/nft-pos-man.json';
-import GammaUniProxy1 from 'constants/abis/gamma-uniproxy1.json';
-import GammaMasterChef from 'constants/abis/gamma-masterchef.json';
-import GammaPairABI from 'constants/abis/gamma-hypervisor.json';
-import TokenLockerABI from 'constants/abis/token-locker-abi.json';
-import UNINFTPosMan from 'constants/abis/uni-v3/nft-position-manager.json';
-import { useSingleCallResult } from 'state/multicall/v3/hooks';
-import UNIPILOT_VAULT_ABI from 'constants/abis/unipilot-vault.json';
-import UNIPILOT_SINGLE_REWARD_ABI from 'constants/abis/unipilot-single-reward.json';
-import UNIPILOT_DUAL_REWARD_ABI from 'constants/abis/unipilot-dual-reward.json';
-import DEFIEDGE_STRATEGY_ABI from 'constants/abis/defiedge-strategy.json';
-import DEFIEDGE_MINICHEF_ABI from 'constants/abis/defiedge-minichef.json';
-import PRICE_GETTER_ABI from 'constants/abis/price-getter.json';
-import BOND_ABI from 'constants/abis/bond.json';
-import BOND_NFT_ABI from 'constants/abis/bondNFT.json';
-import ZAP_ABI from 'constants/abis/zap.json';
-import STEER_STAKING_ABI from 'constants/abis/steer-staking.json';
-import STEER_DUAL_STAKING_ABI from 'constants/abis/steer-staking-dual.json';
-import SteerPeripheryABI from 'constants/abis/steer-periphery.json';
-import SteerVaultABI from 'constants/abis/steer-vault.json';
-import SteerVaultRegistryABI from 'constants/abis/steer-vault-registry.json';
-import { V2_FACTORY_ADDRESSES } from 'constants/lockers';
-import { RPC_PROVIDERS } from 'constants/providers';
+  getBep20Contract,
+  getCakeContract,
+  getBunnyFactoryContract,
+  getBunnySpecialContract,
+  getPancakeRabbitContract,
+  getProfileContract,
+  getIfoV1Contract,
+  getIfoV2Contract,
+  getMasterchefContract,
+  getPointCenterIfoContract,
+  getSouschefContract,
+  getClaimRefundContract,
+  getTradingCompetitionContract,
+  getEasterNftContract,
+  getErc721Contract,
+  getCakeVaultContract,
+  getPredictionsContract,
+  getChainlinkOracleContract,
+  getSouschefV2Contract,
+  getLotteryV2Contract,
+  getBunnySpecialCakeVaultContract,
+  getBunnySpecialPredictionContract,
+  getFarmAuctionContract,
+  getBunnySpecialLotteryContract,
+  getAnniversaryAchievementContract,
+  getNftMarketContract,
+  getNftSaleContract,
+  getPancakeSquadContract,
+  getErc721CollectionContract,
+} from 'utils/contractHelpers'
+import { getMulticallAddress } from 'utils/addressHelpers'
 
-const LairABI = dragonsLair.abi;
-const IUniswapV2Router02ABI = router02.abi;
-const IUniswapV2PairABI = iUniswapV2Pair.abi;
+// Imports below migrated from Exchange useContract.ts
+import { Contract } from '@ethersproject/contracts'
+import { ChainId, WETH } from '@pancakeswap/sdk'
+import { abi as IUniswapV2PairABI } from '@uniswap/v2-core/build/IUniswapV2Pair.json'
+import ENS_PUBLIC_RESOLVER_ABI from '../config/abi/ens-public-resolver.json'
+import ENS_ABI from '../config/abi/ens-registrar.json'
+import { ERC20_BYTES32_ABI } from '../config/abi/erc20'
+import ERC20_ABI from '../config/abi/erc20.json'
+import WETH_ABI from '../config/abi/weth.json'
+import multiCallAbi from '../config/abi/Multicall.json'
+import { getContract } from '../utils'
 
-const STAKING_REWARDS_ABI = abi.abi;
-export function useContract<T extends Contract = Contract>(
-  addressOrAddressMap: string | { [chainId: number]: string } | undefined,
-  ABI: any,
-  withSignerIfPossible = true,
-): T | null {
-  const { library: web3ModalLibrary, account, chainId } = useActiveWeb3React();
-  const libraryFromChain = RPC_PROVIDERS[chainId];
-  const library = web3ModalLibrary ?? libraryFromChain;
+/**
+ * Helper hooks to get specific contracts (by ABI)
+ */
+
+export const useIfoV1Contract = (address: string) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getIfoV1Contract(address, library.getSigner()), [address, library])
+}
+
+export const useIfoV2Contract = (address: string) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getIfoV2Contract(address, library.getSigner()), [address, library])
+}
+
+export const useERC20 = (address: string) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getBep20Contract(address, library.getSigner()), [address, library])
+}
+
+/**
+ * @see https://docs.openzeppelin.com/contracts/3.x/api/token/erc721
+ */
+export const useERC721 = (address: string) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getErc721Contract(address, library.getSigner()), [address, library])
+}
+
+export const useCake = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getCakeContract(library.getSigner()), [library])
+}
+
+export const useBunnyFactory = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getBunnyFactoryContract(library.getSigner()), [library])
+}
+
+export const usePancakeRabbits = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getPancakeRabbitContract(library.getSigner()), [library])
+}
+
+export const useProfile = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getProfileContract(library.getSigner()), [library])
+}
+
+export const useLotteryV2Contract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getLotteryV2Contract(library.getSigner()), [library])
+}
+
+export const useMasterchef = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getMasterchefContract(library.getSigner()), [library])
+}
+
+export const useSousChef = (id) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getSouschefContract(id, library.getSigner()), [id, library])
+}
+
+export const useSousChefV2 = (id) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getSouschefV2Contract(id, library.getSigner()), [id, library])
+}
+
+export const usePointCenterIfoContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getPointCenterIfoContract(library.getSigner()), [library])
+}
+
+export const useBunnySpecialContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getBunnySpecialContract(library.getSigner()), [library])
+}
+
+export const useClaimRefundContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getClaimRefundContract(library.getSigner()), [library])
+}
+
+export const useTradingCompetitionContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getTradingCompetitionContract(library.getSigner()), [library])
+}
+
+export const useEasterNftContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getEasterNftContract(library.getSigner()), [library])
+}
+
+export const useCakeVaultContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getCakeVaultContract(library.getSigner()), [library])
+}
+
+export const usePredictionsContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getPredictionsContract(library.getSigner()), [library])
+}
+
+export const useChainlinkOracleContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getChainlinkOracleContract(library.getSigner()), [library])
+}
+
+export const useSpecialBunnyCakeVaultContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getBunnySpecialCakeVaultContract(library.getSigner()), [library])
+}
+
+export const useSpecialBunnyPredictionContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getBunnySpecialPredictionContract(library.getSigner()), [library])
+}
+
+export const useBunnySpecialLotteryContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getBunnySpecialLotteryContract(library.getSigner()), [library])
+}
+
+export const useAnniversaryAchievementContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getAnniversaryAchievementContract(library.getSigner()), [library])
+}
+
+export const useNftSaleContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getNftSaleContract(library.getSigner()), [library])
+}
+
+export const usePancakeSquadContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getPancakeSquadContract(library.getSigner()), [library])
+}
+
+export const useFarmAuctionContract = () => {
+  const { account, library } = useActiveWeb3React()
+  // This hook is slightly different from others
+  // Calls were failing if unconnected user goes to farm auction page
+  // Using library instead of library.getSigner() fixes the problem for unconnected users
+  // However, this fix is not ideal, it currently has following behavior:
+  // - If you visit Farm Auction page coming from some other page there are no errors in console (unconnected or connected)
+  // - If you go directly to Farm Auction page
+  //   - as unconnected user you don't see any console errors
+  //   - as connected user you see `unknown account #0 (operation="getAddress", code=UNSUPPORTED_OPERATION, ...` errors
+  //     the functionality of the page is not affected, data is loading fine and you can interact with the contract
+  //
+  // Similar behavior was also noticed on Trading Competition page.
+  return useMemo(() => getFarmAuctionContract(account ? library.getSigner() : library), [library, account])
+}
+
+export const useNftMarketContract = () => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => getNftMarketContract(library.getSigner()), [library])
+}
+
+export const useErc721CollectionContract = (collectionAddress: string) => {
+  const { library } = useActiveWeb3React()
+  return useMemo(() => {
+    return getErc721CollectionContract(library.getSigner(), collectionAddress)
+  }, [library, collectionAddress])
+}
+
+// Code below migrated from Exchange useContract.ts
+
+// returns null on errors
+function useContract(address: string | undefined, ABI: any, withSignerIfPossible = true): Contract | null {
+  const { library, account } = useActiveWeb3React()
 
   return useMemo(() => {
-    if (!addressOrAddressMap || !ABI || !library || !chainId) return null;
-    let address: string | undefined;
-    if (typeof addressOrAddressMap === 'string') address = addressOrAddressMap;
-    else address = addressOrAddressMap[chainId];
-    if (!address) return null;
+    if (!address || !ABI || !library) return null
     try {
-      return getContract(
-        address,
-        ABI,
-        library,
-        withSignerIfPossible && account ? account : undefined,
-      );
+      return getContract(address, ABI, library, withSignerIfPossible && account ? account : undefined)
     } catch (error) {
-      console.error('Failed to get contract', error);
-      return null;
+      console.error('Failed to get contract', error)
+      return null
     }
-  }, [
-    addressOrAddressMap,
-    ABI,
-    library,
-    chainId,
-    withSignerIfPossible,
-    account,
-  ]) as T;
+  }, [address, ABI, library, withSignerIfPossible, account])
 }
 
-export function useContracts<T extends Contract = Contract>(
-  addressOrAddressMaps: string[] | { [chainId: number]: string }[] | undefined,
-  ABI: any,
-  withSignerIfPossible = true,
-): (T | null)[] {
-  const { library, account, chainId } = useActiveWeb3React();
-
-  return useMemo(() => {
-    if (!addressOrAddressMaps || !ABI || !library || !chainId) return [];
-    return addressOrAddressMaps.map((addressOrAddressMap) => {
-      let address: string | undefined;
-      if (typeof addressOrAddressMap === 'string')
-        address = addressOrAddressMap;
-      else address = addressOrAddressMap[chainId];
-      if (!address) return null;
-      try {
-        return getContract(
-          address,
-          ABI,
-          library,
-          withSignerIfPossible && account ? account : undefined,
-        );
-      } catch (error) {
-        console.error('Failed to get contract', error);
-        return null;
-      }
-    });
-  }, [
-    addressOrAddressMaps,
-    ABI,
-    library,
-    chainId,
-    withSignerIfPossible,
-    account,
-  ]) as (T | null)[];
+export function useTokenContract(tokenAddress?: string, withSignerIfPossible?: boolean): Contract | null {
+  return useContract(tokenAddress, ERC20_ABI, withSignerIfPossible)
 }
 
-export function useTokenLockerContract(
-  chainId: ChainId,
-  lockContractAddress?: string,
-  withSignerIfPossible = true,
-): Contract | null {
-  return useContract(
-    lockContractAddress ?? V2_FACTORY_ADDRESSES[chainId],
-    TokenLockerABI,
-    withSignerIfPossible,
-  );
+export function useWETHContract(withSignerIfPossible?: boolean): Contract | null {
+  const { chainId } = useActiveWeb3React()
+  return useContract(chainId ? WETH[chainId].address : undefined, WETH_ABI, withSignerIfPossible)
 }
 
-export function useLairContract(chainId?: ChainId): Contract | null {
-  return useContract(
-    chainId ? LAIR_ADDRESS[chainId] : LAIR_ADDRESS,
-    LairABI,
-    true,
-  );
-}
-
-export function useQUICKContract(): Contract | null {
-  return useContract(QUICK_ADDRESS, ERC20_ABI, true);
-}
-
-export function useNewLairContract(): Contract | null {
-  return useContract(NEW_LAIR_ADDRESS, LairABI, true);
-}
-
-export function useNewQUICKContract(): Contract | null {
-  return useContract(DL_QUICK_ADDRESS, ERC20_ABI, true);
-}
-
-export function useQUICKConversionContract(): Contract | null {
-  return useContract(QUICK_CONVERSION, QUICKConversionABI, true);
-}
-
-export function useV1FactoryContract(): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId && V1_FACTORY_ADDRESSES[chainId],
-    V1_FACTORY_ABI,
-    false,
-  );
-}
-
-export function useV2ToV3MigratorContract() {
-  return useContract(V3_MIGRATOR_ADDRESSES, V2ToV3MigratorABI, true);
-}
-
-export function useV1ExchangeContract(
-  address?: string,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(address, V1_EXCHANGE_ABI, withSignerIfPossible);
-}
-
-export function useTokenContract(
-  tokenAddress?: string,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(tokenAddress, ERC20_ABI, withSignerIfPossible);
-}
-
-export function useWETHContract(
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId ? WETH[chainId].address : undefined,
-    WETH_ABI,
-    withSignerIfPossible,
-  );
-}
-
-export function useNativeConverterContract(
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId ? NATIVE_CONVERTER[chainId] : undefined,
-    NATIVE_CONVERTER_ABI,
-    withSignerIfPossible,
-  );
-}
-
-export function useArgentWalletDetectorContract(): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId === ChainId.MATIC
-      ? ARGENT_WALLET_DETECTOR_MAINNET_ADDRESS
-      : undefined,
-    ARGENT_WALLET_DETECTOR_ABI,
-    false,
-  );
-}
-
-export function useENSRegistrarContract(
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  let address: string | undefined;
+export function useENSRegistrarContract(withSignerIfPossible?: boolean): Contract | null {
+  const { chainId } = useActiveWeb3React()
+  let address: string | undefined
   if (chainId) {
+    // eslint-disable-next-line default-case
     switch (chainId) {
-      case ChainId.MATIC:
-        address = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'; //TODO: MATIC
-        break;
+      case ChainId.MAINNET:
+      case ChainId.TESTNET:
+        address = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+        break
     }
   }
-  return useContract(address, ENS_ABI, withSignerIfPossible);
+  return useContract(address, ENS_ABI, withSignerIfPossible)
 }
 
-export function useENSResolverContract(
-  address: string | undefined,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(address, ENS_PUBLIC_RESOLVER_ABI, withSignerIfPossible);
+export function useENSResolverContract(address: string | undefined, withSignerIfPossible?: boolean): Contract | null {
+  return useContract(address, ENS_PUBLIC_RESOLVER_ABI, withSignerIfPossible)
 }
 
-export function useBytes32TokenContract(
-  tokenAddress?: string,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(tokenAddress, ERC20_BYTES32_ABI, withSignerIfPossible);
+export function useBytes32TokenContract(tokenAddress?: string, withSignerIfPossible?: boolean): Contract | null {
+  return useContract(tokenAddress, ERC20_BYTES32_ABI, withSignerIfPossible)
 }
 
-export function usePairContract(
-  pairAddress?: string,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(pairAddress, IUniswapV2PairABI, withSignerIfPossible);
-}
-
-export function useEIP2612Contract(tokenAddress?: string): Contract | null {
-  return useContract(tokenAddress, EIP_2612, false);
+export function usePairContract(pairAddress?: string, withSignerIfPossible?: boolean): Contract | null {
+  return useContract(pairAddress, IUniswapV2PairABI, withSignerIfPossible)
 }
 
 export function useMulticallContract(): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId && MULTICALL_NETWORKS[chainId],
-    MULTICALL_ABI,
-    false,
-  );
-}
-
-export function useMulticall2Contract() {
-  return useContract(MULTICALL_ADDRESS, MULTICALL2_ABI, false);
-}
-
-export function useStakingContract(
-  stakingAddress?: string,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(stakingAddress, STAKING_REWARDS_ABI, withSignerIfPossible);
-}
-
-export function useDualRewardsStakingContract(
-  stakingAddress?: string,
-  withSignerIfPossible?: boolean,
-): Contract | null {
-  return useContract(
-    stakingAddress,
-    STAKING_DUAL_REWARDS_INTERFACE,
-    withSignerIfPossible,
-  );
-}
-
-export function useSocksController(): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId === ChainId.MATIC ? undefined : undefined,
-    UNISOCKS_ABI,
-    false,
-  );
-}
-
-export function useRouterContract(): Contract | null {
-  const { chainId, account } = useActiveWeb3React();
-  return useContract(
-    chainId ? V2_ROUTER_ADDRESS[chainId] : undefined,
-    IUniswapV2Router02ABI,
-    Boolean(account),
-  );
-}
-
-export function useV3Quoter() {
-  return useContract(QUOTER_ADDRESSES, NewQuoterABI);
-}
-export function useUniV3Quoter() {
-  return useContract(UNIV3_QUOTER_ADDRESSES, UniV3QuoterABI);
-}
-
-export function useV3NFTPositionManagerContract(
-  withSignerIfPossible?: boolean,
-) {
-  return useContract(
-    NONFUNGIBLE_POSITION_MANAGER_ADDRESSES,
-    NFTPosMan,
-    withSignerIfPossible,
-  );
-}
-
-export function useUNIV3NFTPositionManagerContract(
-  withSignerIfPossible?: boolean,
-) {
-  return useContract(
-    UNI_NFT_POSITION_MANAGER_ADDRESS,
-    UNINFTPosMan,
-    withSignerIfPossible,
-  );
-}
-
-export function useGammaUNIProxyContract(
-  pairAddress?: string,
-  withSignerIfPossible?: boolean,
-) {
-  const hypervisorContract = useGammaHypervisorContract(pairAddress);
-  const uniProxyResult = useSingleCallResult(
-    hypervisorContract,
-    'whitelistedAddress',
-  );
-  const uniProxyAddress =
-    !uniProxyResult.loading &&
-    uniProxyResult.result &&
-    uniProxyResult.result.length > 0
-      ? uniProxyResult.result[0]
-      : undefined;
-  return useContract(uniProxyAddress, GammaUniProxy1, withSignerIfPossible);
-}
-
-export function useMasterChefContract(
-  index?: number,
-  withSignerIfPossible?: boolean,
-  abi?: any,
-) {
-  return useContract(
-    GAMMA_MASTERCHEF_ADDRESSES[index ?? 0],
-    abi ?? GammaMasterChef,
-    withSignerIfPossible,
-  );
-}
-
-export function useMiniChefContract(
-  address?: string,
-  withSignerIfPossible?: boolean,
-) {
-  return useContract(address, DEFIEDGE_MINICHEF_ABI, withSignerIfPossible);
-}
-
-export function useMasterChefContracts(withSignerIfPossible?: boolean) {
-  return useContracts(
-    GAMMA_MASTERCHEF_ADDRESSES,
-    GammaMasterChef,
-    withSignerIfPossible,
-  );
-}
-
-export function useGammaHypervisorContract(
-  address?: string,
-  withSignerIfPossible?: boolean,
-) {
-  return useContract(address, GammaPairABI, withSignerIfPossible);
-}
-
-export function useUniPilotVaultContract(
-  address?: string,
-  withSignerIfPossible?: boolean,
-) {
-  return useContract(address, UNIPILOT_VAULT_ABI, withSignerIfPossible);
-}
-
-export function useDefiedgeStrategyContract(
-  address?: string,
-  withSignerIfPossible?: boolean,
-) {
-  return useContract(address, DEFIEDGE_STRATEGY_ABI, withSignerIfPossible);
-}
-
-export function useDefiEdgeMiniChefContracts(
-  addresses: string[],
-  withSignerIfPossible?: boolean,
-) {
-  return useContracts(addresses, DEFIEDGE_MINICHEF_ABI, withSignerIfPossible);
-}
-
-export function useUnipilotFarmingContract(
-  address?: string,
-  isDual?: boolean,
-  withSignerIfPossible?: boolean,
-) {
-  const singleContract = useContract(
-    address,
-    UNIPILOT_SINGLE_REWARD_ABI,
-    withSignerIfPossible,
-  );
-  const dualContract = useContract(
-    address,
-    UNIPILOT_DUAL_REWARD_ABI,
-    withSignerIfPossible,
-  );
-  return isDual ? dualContract : singleContract;
-}
-
-export function usePriceGetterContract(withSignerIfPossible?: boolean) {
-  return useContract(
-    PRICE_GETTER_ADDRESS,
-    PRICE_GETTER_ABI,
-    withSignerIfPossible,
-  );
-}
-
-export const useBondContract = (address: string) => {
-  return useContract(address, BOND_ABI);
-};
-
-export const useBondContracts = (addresses: string[]) => {
-  return useContracts(addresses, BOND_ABI);
-};
-
-export const useBondNFTContract = (address: string) => {
-  return useContract(address, BOND_NFT_ABI);
-};
-
-export function useZapContract(withSignerIfPossible?: boolean) {
-  const { chainId } = useActiveWeb3React();
-  return useContract(
-    chainId ? ZAP_ADDRESS[chainId] : undefined,
-    ZAP_ABI,
-    withSignerIfPossible,
-  );
-}
-
-export function useSteerPeripheryContract(withSignerIfPossible?: boolean) {
-  const contract = useContract(
-    STEER_PERIPHERY,
-    SteerPeripheryABI,
-    withSignerIfPossible,
-  );
-  return contract;
-}
-
-export function useSteerVaultRegistryContract(withSignerIfPossible?: boolean) {
-  const contract = useContract(
-    STEER_VAULT_REGISTRY,
-    SteerVaultRegistryABI,
-    withSignerIfPossible,
-  );
-  return contract;
-}
-
-export function useSteerVaultContract(
-  address?: string,
-  withSignerIfPossible?: boolean,
-) {
-  const contract = useContract(address, SteerVaultABI, withSignerIfPossible);
-  return contract;
-}
-
-export function useSteerFarmingContract(
-  address?: string,
-  isDual?: boolean,
-  withSignerIfPossible?: boolean,
-) {
-  const singleContract = useContract(
-    address,
-    STEER_STAKING_ABI,
-    withSignerIfPossible,
-  );
-  const dualContract = useContract(
-    address,
-    STEER_DUAL_STAKING_ABI,
-    withSignerIfPossible,
-  );
-  return isDual ? dualContract : singleContract;
-}
-
-export function useMerklContract(withSignerIfPossible?: boolean) {
-  const distributorABI = [
-    'function claim(address[] calldata users, address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external',
-  ];
-  const contract = useContract(
-    MERKL_DISTRIBUTOR,
-    distributorABI,
-    withSignerIfPossible,
-  );
-  return contract;
+  return useContract(getMulticallAddress(), multiCallAbi, false)
 }

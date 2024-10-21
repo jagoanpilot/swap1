@@ -1,108 +1,58 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useActiveWeb3React } from 'hooks';
-import { useBlockNumber } from 'state/application/hooks';
-import { useAddPopup, useRemovePopup } from 'state/application/hooks';
-import { AppDispatch, AppState } from 'state';
-import { checkedTransaction, finalizeTransaction } from './actions';
-import { updateBlockNumber } from 'state/application/actions';
+import React, { useEffect, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { Text, Flex, Link } from '@pancakeswap/uikit'
+import { useTranslation } from 'contexts/Localization'
+import useActiveWeb3React from 'hooks/useActiveWeb3React'
+import { getBscScanLink } from 'utils'
+import { useBlock } from 'state/block/hooks'
+import useToast from 'hooks/useToast'
+import { AppDispatch, AppState } from '../index'
+import { checkedTransaction, finalizeTransaction } from './actions'
 
 export function shouldCheck(
-  lastBlockNumber: number,
+  currentBlock: number,
   tx: { addedTime: number; receipt?: any; lastCheckedBlockNumber?: number },
 ): boolean {
-  if (tx.receipt) return false;
-  if (!tx.lastCheckedBlockNumber) return true;
-  const blocksSinceCheck = lastBlockNumber - tx.lastCheckedBlockNumber;
-  if (blocksSinceCheck < 1) return false;
-  const minutesPending = (new Date().getTime() - tx.addedTime) / 1000 / 60;
+  if (tx.receipt) return false
+  if (!tx.lastCheckedBlockNumber) return true
+  const blocksSinceCheck = currentBlock - tx.lastCheckedBlockNumber
+  if (blocksSinceCheck < 1) return false
+  const minutesPending = (new Date().getTime() - tx.addedTime) / 1000 / 60
   if (minutesPending > 60) {
     // every 10 blocks if pending for longer than an hour
-    return blocksSinceCheck > 9;
-  } else if (minutesPending > 5) {
-    // every 3 blocks if pending more than 5 minutes
-    return blocksSinceCheck > 2;
-  } else {
-    // otherwise every block
-    return true;
+    return blocksSinceCheck > 9
   }
+  if (minutesPending > 5) {
+    // every 3 blocks if pending more than 5 minutes
+    return blocksSinceCheck > 2
+  }
+  // otherwise every block
+  return true
 }
 
 export default function Updater(): null {
-  const { chainId, library } = useActiveWeb3React();
-  const [popupTxHashes, setPopupTxHashes] = useState(''); // to store hash of the transactions already opened a popup.
+  const { library, chainId } = useActiveWeb3React()
+  const { t } = useTranslation()
 
-  const lastBlockNumber = useBlockNumber();
+  const { currentBlock } = useBlock()
 
-  const dispatch = useDispatch<AppDispatch>();
-  const state = useSelector<AppState, AppState['transactions']>(
-    (state) => state.transactions,
-  );
+  const dispatch = useDispatch<AppDispatch>()
+  const state = useSelector<AppState, AppState['transactions']>((s) => s.transactions)
 
-  const transactions = useMemo(() => (chainId ? state[chainId] ?? {} : {}), [
-    chainId,
-    state,
-  ]);
+  const transactions = useMemo(() => (chainId ? state[chainId] ?? {} : {}), [chainId, state])
 
-  // show popup on confirm
-  const addPopup = useAddPopup();
-  const removePopup = useRemovePopup();
+  const { toastError, toastSuccess } = useToast()
 
   useEffect(() => {
-    if (!chainId || !library || !lastBlockNumber) return;
+    if (!chainId || !library || !currentBlock) return
 
     Object.keys(transactions)
-      .filter((hash) => shouldCheck(lastBlockNumber, transactions[hash]))
+      .filter((hash) => shouldCheck(currentBlock, transactions[hash]))
       .forEach((hash) => {
-        library.getTransaction(hash).then((res) => {
-          // to prevent opening the processing popup multiple times when the transaction is pending for a long time.
-          if (popupTxHashes.indexOf(hash) === -1 && res) {
-            addPopup(
-              {
-                txn: {
-                  hash,
-                  pending: true,
-                  success: false,
-                  summary: transactions[hash]?.summary,
-                },
-              },
-              hash,
-              null,
-            );
-
-            setTimeout(() => {
-              removePopup(hash);
-            }, 20000);
-
-            let hashStr = popupTxHashes;
-            hashStr += hash + ',';
-            setPopupTxHashes(hashStr);
-          }
-          if (!res) {
-            dispatch(
-              finalizeTransaction({
-                chainId,
-                hash,
-                receipt: 'failed',
-              }),
-            );
-          }
-        });
-
         library
           .getTransactionReceipt(hash)
           .then((receipt) => {
             if (receipt) {
-              // the receipt was fetched before the block, fast forward to that block to trigger balance updates
-              if (receipt.blockNumber > lastBlockNumber) {
-                dispatch(
-                  updateBlockNumber({
-                    chainId,
-                    blockNumber: receipt.blockNumber,
-                  }),
-                );
-              }
-
               dispatch(
                 finalizeTransaction({
                   chainId,
@@ -118,44 +68,29 @@ export default function Updater(): null {
                     transactionIndex: receipt.transactionIndex,
                   },
                 }),
-              );
+              )
 
-              removePopup(hash);
-
-              addPopup(
-                {
-                  txn: {
-                    hash,
-                    success: receipt.status === 1,
-                    summary: transactions[hash]?.summary,
-                  },
-                },
-                hash,
-              );
+              const toast = receipt.status === 1 ? toastSuccess : toastError
+              toast(
+                t('Transaction receipt'),
+                <Flex flexDirection="column">
+                  <Text>{transactions[hash]?.summary ?? `Hash: ${hash.slice(0, 8)}...${hash.slice(58, 65)}`}</Text>
+                  {chainId && (
+                    <Link external href={getBscScanLink(hash, 'transaction', chainId)}>
+                      {t('View on BscScan')}
+                    </Link>
+                  )}
+                </Flex>,
+              )
             } else {
-              dispatch(
-                checkedTransaction({
-                  chainId,
-                  hash,
-                  blockNumber: lastBlockNumber,
-                }),
-              );
+              dispatch(checkedTransaction({ chainId, hash, blockNumber: currentBlock }))
             }
           })
           .catch((error) => {
-            console.error(`failed to check transaction hash: ${hash}`, error);
-          });
-      });
-  }, [
-    chainId,
-    library,
-    transactions,
-    removePopup,
-    lastBlockNumber,
-    dispatch,
-    addPopup,
-    popupTxHashes,
-  ]);
+            console.error(`failed to check transaction hash: ${hash}`, error)
+          })
+      })
+  }, [chainId, library, transactions, currentBlock, dispatch, toastSuccess, toastError, t])
 
-  return null;
+  return null
 }

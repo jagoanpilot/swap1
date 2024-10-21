@@ -1,62 +1,35 @@
-import React, { useState } from 'react';
-import { stringToColour } from 'utils/stringToColour';
+import React, { useState } from 'react'
+import { HelpIcon } from '@pancakeswap/uikit'
 
-const BAD_SRCS: { [tokenAddress: string]: true } = {};
+const BAD_SRCS: { [tokenAddress: string]: true } = {}
 
-export interface LogoProps {
-  srcs: string[];
-  alt?: string;
-  symbol?: string;
-  size?: string;
+export interface LogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  srcs: string[]
 }
 
-const Logo: React.FC<LogoProps> = ({
-  srcs,
-  alt,
-  symbol = '??',
-  size = '24px',
-}) => {
-  const [, refresh] = useState<number>(0);
-  const fontSize = parseInt(size, 10) >= 24 ? '12px' : '8px';
-  const src: string | undefined = srcs.find((src) => {
-    if (src && !BAD_SRCS[src]) {
-      return true;
-    }
-  });
+/**
+ * Renders an image by sequentially trying a list of URIs, and then eventually a fallback triangle alert
+ */
+const Logo: React.FC<LogoProps> = ({ srcs, alt, ...rest }) => {
+  const [, refresh] = useState<number>(0)
 
-  symbol = symbol.trim();
-  const displaySymbol = symbol.slice(0, 1) + symbol.slice(-1);
+  const src: string | undefined = srcs.find((s) => !BAD_SRCS[s])
+
   if (src) {
     return (
       <img
+        {...rest}
         alt={alt}
         src={src}
-        style={{ width: size, height: size }}
         onError={() => {
-          if (src) BAD_SRCS[src] = true;
-          refresh((i) => i + 1);
+          if (src) BAD_SRCS[src] = true
+          refresh((i) => i + 1)
         }}
       />
-    );
+    )
   }
-  return (
-    <div
-      className='flex items-center justify-center'
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size,
-        boxShadow: '0 6px 10px rgba(0, 0, 0, 0.075)',
-        background: stringToColour(alt ?? '').background,
-        color: stringToColour(alt ?? '').text,
-        border: stringToColour(alt ?? '').border,
-        fontSize: fontSize ?? '12px',
-        fontWeight: 600,
-      }}
-    >
-      {displaySymbol}
-    </div>
-  );
-};
 
-export default Logo;
+  return <HelpIcon {...rest} />
+}
+
+export default Logo

@@ -1,0 +1,30 @@
+{
+  "name": "PancakeSwap Default List",
+  "timestamp": "2021-05-06T00:00:00Z",
+  "version": {
+    "major": 3,
+    "minor": 0,
+    "patch": 0
+  },
+  "tags": {},
+  "logoURI": "https://pancakeswap.finance/logo.png",
+  "keywords": ["pancake", "default"],
+  "tokens": [
+    {
+      "name": "WBNB Token",
+      "symbol": "WBNB",
+      "address": "0x3a7fD56f4C2701bcD26E566782FF1Ba49113f5b8",
+      "chainId": 80002,
+      "decimals": 18,
+      "logoURI": "https://pancakeswap.finance/images/tokens/0x3a7fD56f4C2701bcD26E566782FF1Ba49113f5b8.png"
+    },
+    {
+      "name": "PancakeSwap Token",
+      "symbol": "CAKE",
+      "address": "0x35A7B6Cc2bF890f367621ffF385d47Fb6cEF4FD6",
+      "chainId": 80002,
+      "decimals": 18,
+      "logoURI": "https://pancakeswap.finance/images/tokens/0x35A7B6Cc2bF890f367621ffF385d47Fb6cEF4FD6.png"
+    }
+  ]
+}
